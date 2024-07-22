@@ -15,6 +15,8 @@ export default function Home() {
   const [currentMqttData, setCurrentMqttData] = useState<(ElicitData | RadarUsbData | RadarWifiData)[]>([]);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [expandedDevices, setExpandedDevices] = useState<Set<string>>(new Set());
+  const [expandedDockerValues, setExpandedDockerValues] = useState<Set<string>>(new Set());
+  const [expandedSystemValues, setExpandedSystemValues] = useState<Set<string>>(new Set());
   const [isDayMode, setIsDayMode] = useState<boolean>(true);
 
   useEffect(() => {
@@ -79,6 +81,30 @@ export default function Home() {
         newExpandedDevices.add(deviceId);
       }
       return newExpandedDevices;
+    });
+  };
+
+  const toggleDockerValues = (connectionId: string) => {
+    setExpandedDockerValues((prev) => {
+      const newExpandedDockerValues = new Set(prev);
+      if (newExpandedDockerValues.has(connectionId)) {
+        newExpandedDockerValues.delete(connectionId);
+      } else {
+        newExpandedDockerValues.add(connectionId);
+      }
+      return newExpandedDockerValues;
+    });
+  };
+
+  const toggleSystemValues = (connectionId: string) => {
+    setExpandedSystemValues((prev) => {
+      const newExpandedSystemValues = new Set(prev);
+      if (newExpandedSystemValues.has(connectionId)) {
+        newExpandedSystemValues.delete(connectionId);
+      } else {
+        newExpandedSystemValues.add(connectionId);
+      }
+      return newExpandedSystemValues;
     });
   };
 
@@ -157,14 +183,30 @@ export default function Home() {
                       )}
                     </div>
                   ))}
-                  <h3>Related Connections</h3>
                   {connections.map((connection) => (
                     <div key={connection.connection_id} className="mb-4">
-                      <h4>{`Connection ID: ${connection.connection_id}`}</h4>
-                      <h5>Docker Values</h5>
-                      {renderDataList(connection.data.docker_values.value)}
-                      <h5>System Values</h5>
-                      {renderDataList(connection.data.system_values.value)}
+                      <h4 className="flex justify-between items-center">
+                        <span onClick={() => toggleDockerValues(connection.connection_id)} style={{ cursor: 'pointer' }}>
+                          Docker Values
+                          <button className="ml-2">
+                            {expandedDockerValues.has(connection.connection_id) ? '-' : '+'}
+                          </button>
+                        </span>
+                      </h4>
+                      {expandedDockerValues.has(connection.connection_id) && (
+                        <div>{renderDataList(connection.data.docker_values.value)}</div>
+                      )}
+                      <h4 className="flex justify-between items-center">
+                        <span onClick={() => toggleSystemValues(connection.connection_id)} style={{ cursor: 'pointer' }}>
+                          System Values
+                          <button className="ml-2">
+                            {expandedSystemValues.has(connection.connection_id) ? '-' : '+'}
+                          </button>
+                        </span>
+                      </h4>
+                      {expandedSystemValues.has(connection.connection_id) && (
+                        <div>{renderDataList(connection.data.system_values.value)}</div>
+                      )}
                     </div>
                   ))}
                 </div>
