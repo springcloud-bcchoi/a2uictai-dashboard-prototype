@@ -50,7 +50,7 @@ const useHighlightUpdate = (
           ...prev,
           [routerId]: { ...prev[routerId], agr: false }
         }));
-      }, 300);
+      }, 500);
       return () => clearTimeout(timeout);
     }
   }, [latestAgrData]);
@@ -96,17 +96,17 @@ export default function Home() {
       {Object.entries(groupedData).map(([router_id, data]) => {
         const isHighlightedAgr = highlightedRouters[router_id]?.agr;
         const isHighlightedMqtt = highlightedRouters[router_id]?.mqtt;
-        const highlightClass = isHighlightedAgr ? 'text-red-500' : isHighlightedMqtt ? 'text-blue-500' : 'text-gray-800';
+        const highlightClass = isHighlightedAgr ? 'text-yellow-500 text-2xl' : isHighlightedMqtt ? 'text-blue-500 text-2xl' : 'text-gray-800';
 
         return (
-          <div key={router_id} className="border-b border-gray-300 pb-4 mb-4">
+          <div key={router_id} className={`border-b-4 pb-4 mb-4 ${isHighlightedAgr ? 'border-yellow-500' : isHighlightedMqtt ? 'border-blue-500' : 'border-gray-300'}`}>
             <h2 className={`cursor-pointer text-xl font-semibold ${highlightClass}`} onClick={() => toggleSection(router_id)}>
               Router ID: {router_id}
             </h2>
 
             <h3
               onClick={() => toggleSection(`${router_id}-agr`)}
-              className={`cursor-pointer text-lg font-semibold ${expandedSections[`${router_id}-agr`] ? 'text-red-500' : 'text-gray-600'}`}
+              className={`cursor-pointer text-lg font-semibold ${expandedSections[`${router_id}-agr`] ? 'text-yellow-500' : 'text-gray-600'}`}
             >
               {expandedSections[`${router_id}-agr`] ? '-' : '+'} AGR Data
             </h3>
