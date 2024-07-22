@@ -1,7 +1,6 @@
 'use client';
 
-import React, {createContext, useState, useEffect, ReactNode, useRef} from 'react';
-
+import React, { createContext, useState, useEffect, ReactNode, useRef } from 'react';
 
 interface DockerState {
   name: string;
@@ -40,7 +39,7 @@ interface SystemValues {
   };
 }
 
-export interface ConnectionData {
+export interface AgrData {
   connection_id: string;
   data: {
     docker_values: DockerValues;
@@ -48,100 +47,74 @@ export interface ConnectionData {
     timestamp: string;
     sourceIp: string;
     system_values: SystemValues;
-    robot_id: string;
-    ack_values: string;
-  };
-}
-export interface NotifyData {
-  "tunnel_id": string,
-  "tunnel_name": string,
-  "alert_name": string,
-  "name": string,
-  "new_status": string,
-  "timestamp": string
-}
-export interface AlertData {
-  "summary": string,
-  "status": string,
-  "topic_id": string,
-  "alertname": string,
-  "description": string,
-  "job": string,
-  "severity": string,
-  'startsAt': string,
-  'endsAt': string,
-}
-export interface RobotData {
-  topic_id: string;
-  data: {
-    docker_0_exit_code: number;
-    docker_5_status: string;
-    fix__svs_used: number;
-    docker_3_status: string;
-    docker_2_status: string;
-    docker_4_status: string;
-    a012_power_raw_voltage_V: number;
-    docker_1_status: string;
-    a012_power_raw_charge: number;
-    docker_4_name: string;
-    system_cpu_temp: number;
-    system_mem_usage: string;
-    fix_level: number;
-    docker_3_name: string;
-    costmap_level: number;
-    camera_level: number;
-    camera_freq: number;
-    a012_power_raw_temperature: number;
-    docker_4_exit_code: number;
-    fix_latitude_: number;
-    a012_velocity_raw_right_rear: number;
-    a012_velocity_level: number;
-    twist_cmd_freq: number;
-    odom_freq: number;
-    docker_1_exit_code: number;
-    fix_horizontal_accuracy_: number;
-    a012_velocity_raw_left_front: number;
-    fix_height_above_msl_: number;
-    scan_level: number;
-    docker_0_status: string;
-    odom_global_level: number;
-    docker_2_name: string;
-    docker_5_name: string;
-    odom_gps_freq: number;
-    system_mac_address: string;
-    docker_5_exit_code: number;
-    a012_velocity_raw_left_rear: number;
-    docker_1_name: string;
-    odom_level: number;
-    docker_2_exit_code: number;
-    costmap_freq: number;
-    system_cpu_usage: number;
-    twist_cmd_level: number;
-    imu_freq: number;
-    odom_gps_level: number;
-    scan_freq: number;
-    system_uptime: number;
-    a012_power_raw_current_A: number;
-    docker_0_name: string;
-    fix_altitude_: number;
-    timestamp: string;
-    a012_power_freq: number;
-    ublox_level: number;
-    system_disk_usage: string;
-    a012_velocity_freq: number;
-    ublox_freq: number;
-    a012_power_level: number;
-    fix_longitude_: number;
-    docker_3_exit_code: number;
-    odom_global_freq: number;
-    a012_velocity_raw_right_front: number;
-    fix_vertical_accuracy_: number;
-    system_level: number;
-    imu_level: number;
-    fix_itow_ms: number;
+    router_id: string;
   };
 }
 
+export interface NotifyData {
+  tunnel_id: string;
+  tunnel_name: string;
+  alert_name: string;
+  name: string;
+  new_status: string;
+  timestamp: string;
+}
+
+export interface AlertData {
+  summary: string;
+  status: string;
+  topic_id: string;
+  alertname: string;
+  description: string;
+  job: string;
+  severity: string;
+  startsAt: string;
+  endsAt: string;
+}
+
+export interface ElicitData {
+  topic_id: string;
+  data: {
+    date: string;
+    rssi: string;
+    address: string;
+    battery: string;
+    event: string;
+    elementType: string;
+  };
+}
+
+export interface RadarUsbData {
+  topic_id: string;
+  data: {
+    BR: string;
+    date: string;
+    Det: string;
+    HR: string;
+    Fall: string;
+    ID: string;
+    Dis: string;
+  };
+}
+
+export interface RadarWifiData {
+  topic_id: string;
+  data: {
+    date: string;
+    no: string;
+    rssi: string;
+    ip: string;
+    count: string;
+    range: string;
+    mac: string;
+    heart: string;
+    breath: string;
+    uid: string;
+    fall: string;
+    event: string;
+    presence: string;
+  };
+}
 
 interface Ack {
   type: string;
@@ -153,28 +126,35 @@ interface Ack {
 interface WebSocketContextValue {
   webSocket: WebSocket | null;
   isConnected: boolean;
-  amrData: ConnectionData | null;
-  mqttData: RobotData | null;
+  agrData: AgrData | null;
+  mqttData: ElicitData | RadarUsbData | RadarWifiData | null;
   ackPromises: React.MutableRefObject<Map<string, (value: string | PromiseLike<string>) => void>>;
-  amrDataDb: ConnectionData[];
-  mqttDataDb: RobotData[];
-  notifyDataDb: NotifyData[],
-  alertDataDb: AlertData[],
+  agrDataDb: AgrData[];
+  mqttDataDb: (ElicitData | RadarUsbData | RadarWifiData)[];
+  notifyDataDb: NotifyData[];
+  alertDataDb: AlertData[];
   notifyData: NotifyData | null;
   alertData: AlertData | null;
+  elicitData: ElicitData[];
+  radarUsbData: RadarUsbData[];
+  radarWifiData: RadarWifiData[];
 }
+
 export const Wss = createContext<WebSocketContextValue>({
   webSocket: null,
   isConnected: false,
-  amrData: null,
+  agrData: null,
   mqttData: null,
   ackPromises: { current: new Map() },
-  amrDataDb: [],
+  agrDataDb: [],
   mqttDataDb: [],
   notifyDataDb: [],
   alertDataDb: [],
   notifyData: null,
   alertData: null,
+  elicitData: [],
+  radarUsbData: [],
+  radarWifiData: [],
 });
 
 interface WebSocketProviderProps {
@@ -196,18 +176,21 @@ export const convertData = (data: any): any => {
   return result;
 };
 
-export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({children}) => {
+export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }) => {
   const [webSocket, setWebSocket] = useState<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [amrData, setAmrData] = useState<ConnectionData | null>(null);
-  const [mqttData, setMqttData] = useState<RobotData | null>(null);
-  const [amrDataDb, setAmrDataDb] = useState<ConnectionData[]>([]);
-  const [mqttDataDb, setMqttDataDb] = useState<RobotData[]>([]);
+  const [agrData, setAgrData] = useState<AgrData | null>(null);
+  const [mqttData, setMqttData] = useState<ElicitData | RadarUsbData | RadarWifiData | null>(null);
+  const [agrDataDb, setAgrDataDb] = useState<AgrData[]>([]);
+  const [mqttDataDb, setMqttDataDb] = useState<(ElicitData | RadarUsbData | RadarWifiData)[]>([]);
   const [notifyDataDb, setNotifyDataDb] = useState<NotifyData[]>([]);
   const [alertDataDb, setAlertDataDb] = useState<AlertData[]>([]);
   const ackPromises = useRef<Map<string, (value: string | PromiseLike<string>) => void>>(new Map());
   const [notifyData, setNotifyData] = useState<NotifyData | null>(null);
   const [alertData, setAlertData] = useState<AlertData | null>(null);
+  const [elicitData, setElicitData] = useState<ElicitData[]>([]);
+  const [radarUsbData, setRadarUsbData] = useState<RadarUsbData[]>([]);
+  const [radarWifiData, setRadarWifiData] = useState<RadarWifiData[]>([]);
 
   useEffect(() => {
     const wsUrl = 'wss://iwxu7qs5h3.execute-api.ap-northeast-2.amazonaws.com/dev';
@@ -219,8 +202,8 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({children}) 
       setIsConnected(true);
 
       // check done connection id & clean dummy data
-      const args = {"command": "reload"};
-      const message = {"type": "utils", "args": args};
+      const args = { command: 'reload' };
+      const message = { type: 'utils', args: args };
       ws.send(JSON.stringify(message));
     };
 
@@ -228,25 +211,49 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({children}) 
       try {
         const parsedData = JSON.parse(event.data);
 
-
         if (parsedData.agr_data_db) {
+          setAgrDataDb(parsedData.agr_data_db.map((data: any) => convertData(data)));
           console.log('agr_data_db', parsedData.agr_data_db);
-
         }
+
         if (parsedData.mqtt_data_db) {
-          console.log('mqtt_data_db', parsedData.mqtt_data_db);
+          const convertedMqttDataDb = parsedData.mqtt_data_db.map((data: any) => convertData(data));
+          setMqttDataDb(convertedMqttDataDb);
 
+          convertedMqttDataDb.forEach((data: ElicitData | RadarUsbData | RadarWifiData) => {
+            if ((data as ElicitData).data.address) {
+              setElicitData((prevData) => [...prevData, data as ElicitData]);
+            } else if ((data as RadarUsbData).data.ID) {
+              setRadarUsbData((prevData) => [...prevData, data as RadarUsbData]);
+            } else if ((data as RadarWifiData).data.ip) {
+              setRadarWifiData((prevData) => [...prevData, data as RadarWifiData]);
+            }
+          });
         }
+
         if (parsedData.agr_data) {
+          setAgrData(convertData(parsedData.agr_data));
           console.log('agr_data', parsedData.agr_data);
-
         }
-        if (parsedData.mqtt_data) {
-          console.log('mqtt_data', parsedData.mqtt_data);
 
+        if (parsedData.mqtt_data) {
+          const convertedData = convertData(parsedData.mqtt_data);
+
+          if (convertedData.data.address) {
+            setElicitData((prevData) => [...prevData, convertedData as ElicitData]);
+            setMqttData(convertedData as ElicitData);
+          } else if (convertedData.data.ID) {
+            setRadarUsbData((prevData) => [...prevData, convertedData as RadarUsbData]);
+            setMqttData(convertedData as RadarUsbData);
+          } else if (convertedData.data.ip) {
+            setRadarWifiData((prevData) => [...prevData, convertedData as RadarWifiData]);
+            setMqttData(convertedData as RadarWifiData);
+          }
+
+          console.log('mqtt_data', parsedData.mqtt_data);
         }
       } catch (error) {
-        console.error("Error parsing JSON:", error);
+        console.error('Error parsing JSON:', error);
       }
     };
 
@@ -263,18 +270,26 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({children}) 
     };
   }, []);
 
-  return <Wss.Provider
-    value={{
-      webSocket,
-      isConnected,
-      amrData,
-      mqttData,
-      ackPromises,
-      mqttDataDb,
-      amrDataDb,
-      notifyDataDb,
-      alertDataDb,
-      notifyData,
-      alertData,
-    }}>{children}</Wss.Provider>;
+  return (
+    <Wss.Provider
+      value={{
+        webSocket,
+        isConnected,
+        agrData,
+        mqttData,
+        ackPromises,
+        agrDataDb,
+        mqttDataDb,
+        notifyDataDb,
+        alertDataDb,
+        notifyData,
+        alertData,
+        elicitData,
+        radarUsbData,
+        radarWifiData,
+      }}
+    >
+      {children}
+    </Wss.Provider>
+  );
 };
