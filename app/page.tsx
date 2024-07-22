@@ -50,7 +50,7 @@ const useHighlightUpdate = (
           ...prev,
           [routerId]: { ...prev[routerId], agr: false }
         }));
-      }, 500);
+      }, 300);
       return () => clearTimeout(timeout);
     }
   }, [latestAgrData]);
@@ -67,7 +67,7 @@ const useHighlightUpdate = (
           ...prev,
           [routerId]: { ...prev[routerId], mqtt: false }
         }));
-      }, 500);
+      }, 300);
       return () => clearTimeout(timeout);
     }
   }, [latestMqttData]);
@@ -114,7 +114,7 @@ export default function Home() {
               <div key={index} className="pl-6 border-l-2 border-gray-200 ml-4">
                 <p><strong>Connection ID:</strong> {agr.connection_id}</p>
                 <h4 className="font-semibold text-gray-700">Docker Status</h4>
-                {agr.data.docker_values.value.state.map((docker, i) => (
+                {agr.data.docker_values.value.state && agr.data.docker_values.value.state.map((docker, i) => (
                   <p key={i}>{docker.name}: {docker.ps.Status} (Running: {docker.ps.Running ? 'Yes' : 'No'})</p>
                 ))}
                 <h4 className="font-semibold text-gray-700">System Status</h4>
