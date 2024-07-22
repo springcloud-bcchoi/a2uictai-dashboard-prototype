@@ -57,26 +57,34 @@ export default function Home() {
     }
   }, [mqttData]);
 
-  const toggleGroup = (prefix: string) => {
+  const toggleGroup = (routerId: string) => {
     setExpandedGroups((prev) => {
       const newExpandedGroups = new Set(prev);
-      if (newExpandedGroups.has(prefix)) {
-        newExpandedGroups.delete(prefix);
+      if (newExpandedGroups.has(routerId)) {
+        newExpandedGroups.delete(routerId);
       } else {
-        newExpandedGroups.add(prefix);
+        newExpandedGroups.add(routerId);
       }
       return newExpandedGroups;
     });
   };
 
-  const groupedData = currentMqttData.reduce((groups, router) => {
-    const prefix = router.topic_id.split('/')[0].slice(0, 4);
-    if (!groups[prefix]) {
-      groups[prefix] = [];
+  const groupedData = currentMqttData.reduce((groups, device) => {
+    const [routerId, deviceAndStatus] = device.topic_id.split('/');
+    const [deviceId, status] = deviceAndStatus.includes('AT+') ? deviceAndStatus.split('=') : [deviceAndStatus, ''];
+
+    if (!groups[routerId]) {
+      groups[routerId] = {
+        devices: {},
+        connections: currentAgrData.filter((connection) => connection.data.router_id === routerId),
+      };
     }
-    groups[prefix].push(router);
+    if (!groups[routerId].devices[deviceId]) {
+      groups[routerId].devices[deviceId] = {};
+    }
+    groups[routerId].devices[deviceId][status] = device;
     return groups;
-  }, {} as Record<string, (ElicitData | RadarUsbData | RadarWifiData)[]>);
+  }, {} as Record<string, { devices: Record<string, Record<string, ElicitData | RadarUsbData | RadarWifiData>>, connections: AgrData[] }>);
 
   const renderTable = (data: Record<string, any>) => (
     <table className="min-w-full mb-4 text-xs">
@@ -104,43 +112,44 @@ export default function Home() {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="col-span-3">
-          {Object.entries(groupedData).map(([prefix, routers]) => {
-            const relatedConnections = currentAgrData.filter(
-              (connection) => connection.data.router_id.startsWith(prefix)
-            );
-            return (
-              <div key={prefix} className="mb-4 p-4 border rounded shadow text-xs relative">
-                <h2 className="text-lg font-semibold flex items-center justify-between">
-                  <span onClick={() => toggleGroup(prefix)} style={{ cursor: 'pointer' }}>
-                    {`Group: ${prefix}`}
-                    <button className="ml-2">
-                      {expandedGroups.has(prefix) ? '-' : '+'}
-                    </button>
-                  </span>
-                </h2>
-                {expandedGroups.has(prefix) && (
-                  <div>
-                    {routers.map((router) => (
-                      <div key={router.topic_id} className="mb-4">
-                        <h3>Router: {router.topic_id}</h3>
-                        <pre>{JSON.stringify(router, null, 2)}</pre>
-                      </div>
-                    ))}
-                    <h3>Related Connections</h3>
-                    {relatedConnections.map((connection) => (
-                      <div key={connection.connection_id} className="mb-4">
-                        <h4>{`Router ID: ${connection.data.router_id} / Connection ID: ${connection.connection_id}`}</h4>
-                        <h5>Docker Values</h5>
-                        {renderTable(connection.data.docker_values)}
-                        <h5>System Values</h5>
-                        {renderTable(connection.data.system_values)}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+          {Object.entries(groupedData).map(([routerId, { devices, connections }]) => (
+            <div key={routerId} className="mb-4 p-4 border rounded shadow text-xs relative">
+              <h2 className="text-lg font-semibold flex items-center justify-between">
+                <span onClick={() => toggleGroup(routerId)} style={{ cursor: 'pointer' }}>
+                  {`Router ID: ${routerId}`}
+                  <button className="ml-2">
+                    {expandedGroups.has(routerId) ? '-' : '+'}
+                  </button>
+                </span>
+              </h2>
+              {expandedGroups.has(routerId) && (
+                <div>
+                  <h3>Devices</h3>
+                  {Object.entries(devices).map(([deviceId, statuses]) => (
+                    <div key={deviceId} className="mb-4">
+                      <h4>Device ID: {deviceId}</h4>
+                      {Object.entries(statuses).map(([status, device]) => (
+                        <div key={status}>
+                          {status && <h5>Status: {status}</h5>}
+                          <pre>{JSON.stringify(device, null, 2)}</pre>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                  <h3>Related Connections</h3>
+                  {connections.map((connection) => (
+                    <div key={connection.connection_id} className="mb-4">
+                      <h4>{`Connection ID: ${connection.connection_id}`}</h4>
+                      <h5>Docker Values</h5>
+                      {renderTable(connection.data.docker_values)}
+                      <h5>System Values</h5>
+                      {renderTable(connection.data.system_values)}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
     </div>
