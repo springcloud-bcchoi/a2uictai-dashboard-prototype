@@ -33,15 +33,14 @@ const groupDataByRouterId = (agrDataDb: AgrData[], mqttDataDb: (ElicitData | Rad
 };
 
 const useHighlightUpdate = (
-  agrDataDb: AgrData[],
-  mqttDataDb: (ElicitData | RadarUsbData | RadarWifiData)[]
+  latestAgrData: AgrData | null,
+  latestMqttData: ElicitData | RadarUsbData | RadarWifiData | null
 ): { [key: string]: { agr: boolean; mqtt: boolean } } => {
   const [highlightedRouters, setHighlightedRouters] = useState<{ [key: string]: { agr: boolean; mqtt: boolean } }>({});
 
   useEffect(() => {
-    if (agrDataDb.length > 0) {
-      const lastAgrData = agrDataDb[agrDataDb.length - 1];
-      const routerId = lastAgrData.data.router_id;
+    if (latestAgrData) {
+      const routerId = latestAgrData.data.router_id;
       setHighlightedRouters(prev => ({
         ...prev,
         [routerId]: { ...prev[routerId], agr: true }
@@ -51,15 +50,14 @@ const useHighlightUpdate = (
           ...prev,
           [routerId]: { ...prev[routerId], agr: false }
         }));
-      }, 500);
+      }, 300);
       return () => clearTimeout(timeout);
     }
-  }, [agrDataDb]);
+  }, [latestAgrData]);
 
   useEffect(() => {
-    if (mqttDataDb.length > 0) {
-      const lastMqttData = mqttDataDb[mqttDataDb.length - 1];
-      const routerId = lastMqttData.topic_id.split('/')[0];
+    if (latestMqttData) {
+      const routerId = latestMqttData.topic_id.split('/')[0];
       setHighlightedRouters(prev => ({
         ...prev,
         [routerId]: { ...prev[routerId], mqtt: true }
@@ -72,42 +70,16 @@ const useHighlightUpdate = (
       }, 500);
       return () => clearTimeout(timeout);
     }
-  }, [mqttDataDb]);
+  }, [latestMqttData]);
 
   return highlightedRouters;
 };
 
 export default function Home() {
-  const { isConnected, agrDataDb, mqttDataDb } = useContext(Wss);
+  const { isConnected, agrDataDb, mqttDataDb, latestAgrData, latestMqttData } = useContext(Wss);
   const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({});
   const groupedData = groupDataByRouterId(agrDataDb, mqttDataDb);
-  const highlightedRouters = useHighlightUpdate(agrDataDb, mqttDataDb);
-
-  useEffect(() => {
-    const handleUpdates = (routerId: string, type: 'agr' | 'mqtt') => {
-      setExpandedSections(prev => ({
-        ...prev,
-        [`${routerId}-${type}`]: true,
-      }));
-      const timeout = setTimeout(() => {
-        setExpandedSections(prev => ({
-          ...prev,
-          [`${routerId}-${type}`]: false,
-        }));
-      }, 500);
-      return () => clearTimeout(timeout);
-    };
-
-    const agrRouterId = agrDataDb.length > 0 ? agrDataDb[agrDataDb.length - 1].data.router_id : null;
-    if (agrRouterId && highlightedRouters[agrRouterId]?.agr) {
-      handleUpdates(agrRouterId, 'agr');
-    }
-
-    const mqttRouterId = mqttDataDb.length > 0 ? mqttDataDb[mqttDataDb.length - 1].topic_id.split('/')[0] : null;
-    if (mqttRouterId && highlightedRouters[mqttRouterId]?.mqtt) {
-      handleUpdates(mqttRouterId, 'mqtt');
-    }
-  }, [agrDataDb, mqttDataDb, highlightedRouters]);
+  const highlightedRouters = useHighlightUpdate(latestAgrData, latestMqttData);
 
   const toggleSection = (key: string) => {
     setExpandedSections(prev => ({
@@ -128,7 +100,7 @@ export default function Home() {
 
         return (
           <div key={router_id} className="border-b border-gray-300 pb-4 mb-4">
-            <h2 className={`cursor-pointer text-xl font-semibold ${highlightClass}`}>
+            <h2 className={`cursor-pointer text-xl font-semibold ${highlightClass}`} onClick={() => toggleSection(router_id)}>
               Router ID: {router_id}
             </h2>
 
