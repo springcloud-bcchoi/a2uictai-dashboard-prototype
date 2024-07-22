@@ -130,6 +130,8 @@ interface WebSocketContextValue {
   elicitData: ElicitData[];
   radarUsbData: RadarUsbData[];
   radarWifiData: RadarWifiData[];
+  latestAgrData: AgrData | null;
+  latestMqttData: ElicitData | RadarUsbData | RadarWifiData | null;
 }
 
 export const Wss = createContext<WebSocketContextValue>({
@@ -146,6 +148,8 @@ export const Wss = createContext<WebSocketContextValue>({
   elicitData: [],
   radarUsbData: [],
   radarWifiData: [],
+  latestAgrData: null,
+  latestMqttData: null,
 });
 
 interface WebSocketProviderProps {
@@ -188,6 +192,8 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
   const [elicitData, setElicitData] = useState<ElicitData[]>([]);
   const [radarUsbData, setRadarUsbData] = useState<RadarUsbData[]>([]);
   const [radarWifiData, setRadarWifiData] = useState<RadarWifiData[]>([]);
+  const [latestAgrData, setLatestAgrData] = useState<AgrData | null>(null);
+  const [latestMqttData, setLatestMqttData] = useState<ElicitData | RadarUsbData | RadarWifiData | null>(null);
 
   useEffect(() => {
     const wsUrl = 'wss://iwxu7qs5h3.execute-api.ap-northeast-2.amazonaws.com/dev';
@@ -213,11 +219,14 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
       if (parsedData.agr_data) {
         setAgrData(parsedData.agr_data);
         setAgrDataDb(prev => updateAgrDataDb(prev, parsedData.agr_data));
+        setLatestAgrData(parsedData.agr_data);
+
       }
 
       if (parsedData.mqtt_data) {
         setMqttData(parsedData.mqtt_data);
         setMqttDataDb(prev => updateMqttDataDb(prev, parsedData.mqtt_data));
+        setLatestMqttData(parsedData.mqtt_data);
       }
     };
 
@@ -250,6 +259,9 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
         elicitData,
         radarUsbData,
         radarWifiData,
+        latestAgrData,
+        latestMqttData,
+
       }}
     >
       {children}
