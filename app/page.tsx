@@ -32,25 +32,6 @@ const groupDataByRouterId = (agrDataDb: AgrData[], mqttDataDb: (ElicitData | Rad
   return groupedData;
 };
 
-const summarizeAgrData = (agrData: AgrData) => ({
-  connection_id: agrData.connection_id,
-  docker_status: agrData.data.docker_values.value.state.map(docker => ({
-    name: docker.name,
-    status: docker.ps.Status,
-    running: docker.ps.Running,
-  })),
-  system_status: {
-    cpu_usage: agrData.data.system_values.value.cpu_usage,
-    mem_usage: agrData.data.system_values.value.mem_usage,
-    uptime: agrData.data.system_values.value.uptime,
-  },
-});
-
-const summarizeMqttData = (mqttData: ElicitData | RadarUsbData | RadarWifiData) => {
-  const { topic_id, data } = mqttData;
-  return { topic_id, data };
-};
-
 export default function Home() {
   const { isConnected, agrDataDb, mqttDataDb } = useContext(Wss);
   const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({});

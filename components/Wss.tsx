@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useState, useEffect, ReactNode, useRef } from 'react';
+import React, { createContext, useState, useEffect, ReactNode } from 'react';
 
 interface DockerState {
   name: string;
@@ -152,6 +152,28 @@ interface WebSocketProviderProps {
   children: ReactNode;
 }
 
+const updateAgrDataDb = (prevDb: AgrData[], newData: AgrData): AgrData[] => {
+  const db = [...prevDb];
+  const existingIndex = db.findIndex(item => item.data.router_id === newData.data.router_id);
+  if (existingIndex !== -1) {
+    db[existingIndex] = newData;
+  } else {
+    db.push(newData);
+  }
+  return db;
+};
+
+const updateMqttDataDb = (prevDb: (ElicitData | RadarUsbData | RadarWifiData)[], newData: ElicitData | RadarUsbData | RadarWifiData): (ElicitData | RadarUsbData | RadarWifiData)[] => {
+  const db = [...prevDb];
+  const existingIndex = db.findIndex(item => item.topic_id === newData.topic_id);
+  if (existingIndex !== -1) {
+    db[existingIndex] = newData;
+  } else {
+    db.push(newData);
+  }
+  return db;
+};
+
 export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }) => {
   const [webSocket, setWebSocket] = useState<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -190,14 +212,12 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
 
       if (parsedData.agr_data) {
         setAgrData(parsedData.agr_data);
-        setAgrDataDb(prev => [...prev, parsedData.agr_data]);
-
+        setAgrDataDb(prev => updateAgrDataDb(prev, parsedData.agr_data));
       }
 
       if (parsedData.mqtt_data) {
         setMqttData(parsedData.mqtt_data);
-        setMqttDataDb(prev => [...prev, parsedData.mqtt_data]);
-
+        setMqttDataDb(prev => updateMqttDataDb(prev, parsedData.mqtt_data));
       }
     };
 
