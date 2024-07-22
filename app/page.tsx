@@ -17,7 +17,8 @@ export default function Home() {
   const [expandedDevices, setExpandedDevices] = useState<Set<string>>(new Set());
   const [expandedDockerValues, setExpandedDockerValues] = useState<Set<string>>(new Set());
   const [expandedSystemValues, setExpandedSystemValues] = useState<Set<string>>(new Set());
-  const [isDayMode, setIsDayMode] = useState<boolean>(true);
+  const [isDayMode, setIsDayMode] = useState<boolean>(false); // 기본을 Night 모드로 설정
+  const [blinkGroups, setBlinkGroups] = useState<Set<string>>(new Set()); // 추가: 깜빡임 상태를 관리합니다.
 
   useEffect(() => {
     if (agrDataDb.length > 0) {
@@ -43,6 +44,15 @@ export default function Home() {
           return [...prevData, agrData];
         }
       });
+      setBlinkGroups((prev) => {
+        const newBlinkGroups = new Set(prev);
+        newBlinkGroups.add(agrData.data.router_id);
+        setTimeout(() => {
+          newBlinkGroups.delete(agrData.data.router_id);
+          setBlinkGroups(new Set(newBlinkGroups));
+        }, 1000); // 1초 동안 깜빡임
+        return newBlinkGroups;
+      });
     }
   }, [agrData]);
 
@@ -56,6 +66,16 @@ export default function Home() {
         } else {
           return [...prevData, mqttData];
         }
+      });
+      const routerId = mqttData.topic_id.split('/')[0];
+      setBlinkGroups((prev) => {
+        const newBlinkGroups = new Set(prev);
+        newBlinkGroups.add(routerId);
+        setTimeout(() => {
+          newBlinkGroups.delete(routerId);
+          setBlinkGroups(new Set(newBlinkGroups));
+        }, 1000); // 1초 동안 깜빡임
+        return newBlinkGroups;
       });
     }
   }, [mqttData]);
@@ -129,16 +149,36 @@ export default function Home() {
     <ul className="list-none p-0">
       {Object.entries(data).map(([key, value]) => (
         <li key={key} className="mb-1">
-          <strong>{key}:</strong> {value.toString()}
+          <strong>{key}:</strong> {value !== undefined ? (typeof value === 'object' ? JSON.stringify(value) : value.toString()) : ''}
         </li>
       ))}
     </ul>
   );
 
+  const renderDockerValues = (dockerValues: any) => (
+    <div>
+      {dockerValues.state && Array.isArray(dockerValues.state) && (
+        <div>
+          {dockerValues.state.map((stateItem: any, index: number) => (
+            <div key={index} className="mb-2">
+              <h5>State {index + 1}</h5>
+              {renderDataList(stateItem)}
+            </div>
+          ))}
+        </div>
+      )}
+      {Object.entries(dockerValues).filter(([key]) => key !== 'state').map(([key, value]) => (
+        <div key={key} className="mb-1">
+          <strong>{key}:</strong> {value !== undefined ? (typeof value === 'object' ? JSON.stringify(value) : value.toString()) : ''}
+        </div>
+      ))}
+    </div>
+  );
+
   return (
     <div className={`container mx-auto p-4 ${isDayMode ? 'bg-white text-black' : 'bg-gray-900 text-white'}`}>
       <div className="flex justify-between mb-4">
-        <h1 className="text-xl font-bold mb-4">Zeta Satellite Router Dashboard</h1>
+        <h1 className="text-xl font-bold mb-4">A2UICT Router Dashboard</h1>
         <button
           className={`px-2 py-1 rounded ${isDayMode ? 'bg-black text-white' : 'bg-white text-black'}`}
           onClick={() => setIsDayMode(!isDayMode)}
@@ -149,8 +189,8 @@ export default function Home() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="col-span-3">
           {Object.entries(groupedData).map(([routerId, { devices, connections }]) => (
-            <div key={routerId} className="mb-4 p-4 border rounded shadow text-xs relative">
-              <h2 className="text-lg font-semibold flex items-center justify-between">
+            <div key={routerId} className={`mb-4 p-4 border rounded shadow text-xs relative ${isDayMode ? 'bg-gray-200' : 'bg-gray-800 text-white'}`}>
+              <h2 className={`text-lg font-semibold flex items-center justify-between ${blinkGroups.has(routerId) ? 'blink' : ''}`}>
                 <span onClick={() => toggleGroup(routerId)} style={{ cursor: 'pointer' }}>
                   {`Router ID: ${routerId} / Connection ID: ${connections.length > 0 ? connections[0].connection_id : 'No Connection'}`}
                   <button className="ml-2">
@@ -194,7 +234,7 @@ export default function Home() {
                         </span>
                       </h4>
                       {expandedDockerValues.has(connection.connection_id) && (
-                        <div>{renderDataList(connection.data.docker_values.value)}</div>
+                        <div>{renderDockerValues(connection.data.docker_values.value)}</div>
                       )}
                       <h4 className="flex justify-between items-center">
                         <span onClick={() => toggleSystemValues(connection.connection_id)} style={{ cursor: 'pointer' }}>
