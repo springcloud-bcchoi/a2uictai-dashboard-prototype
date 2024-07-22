@@ -116,19 +116,11 @@ export interface RadarWifiData {
   };
 }
 
-interface Ack {
-  type: string;
-  request_id: string;
-  status: string;
-  upload_url?: string;
-}
-
 interface WebSocketContextValue {
   webSocket: WebSocket | null;
   isConnected: boolean;
   agrData: AgrData | null;
   mqttData: ElicitData | RadarUsbData | RadarWifiData | null;
-  ackPromises: React.MutableRefObject<Map<string, (value: string | PromiseLike<string>) => void>>;
   agrDataDb: AgrData[];
   mqttDataDb: (ElicitData | RadarUsbData | RadarWifiData)[];
   notifyDataDb: NotifyData[];
@@ -145,7 +137,6 @@ export const Wss = createContext<WebSocketContextValue>({
   isConnected: false,
   agrData: null,
   mqttData: null,
-  ackPromises: { current: new Map() },
   agrDataDb: [],
   mqttDataDb: [],
   notifyDataDb: [],
@@ -161,21 +152,6 @@ interface WebSocketProviderProps {
   children: ReactNode;
 }
 
-// utils/convertData.ts
-export const convertData = (data: any): any => {
-  const result = { ...data };
-  for (const key in result) {
-    if (key === 'topic_id') {
-      result[key] = String(result[key]);
-    } else if (typeof result[key] === 'string' && !isNaN(Number(result[key]))) {
-      result[key] = parseFloat(result[key]);
-    } else if (typeof result[key] === 'object') {
-      result[key] = convertData(result[key]);
-    }
-  }
-  return result;
-};
-
 export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }) => {
   const [webSocket, setWebSocket] = useState<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -185,7 +161,6 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
   const [mqttDataDb, setMqttDataDb] = useState<(ElicitData | RadarUsbData | RadarWifiData)[]>([]);
   const [notifyDataDb, setNotifyDataDb] = useState<NotifyData[]>([]);
   const [alertDataDb, setAlertDataDb] = useState<AlertData[]>([]);
-  const ackPromises = useRef<Map<string, (value: string | PromiseLike<string>) => void>>(new Map());
   const [notifyData, setNotifyData] = useState<NotifyData | null>(null);
   const [alertData, setAlertData] = useState<AlertData | null>(null);
   const [elicitData, setElicitData] = useState<ElicitData[]>([]);
@@ -200,60 +175,29 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     ws.onopen = () => {
       console.log('Connected to WebSocket');
       setIsConnected(true);
-
-      // check done connection id & clean dummy data
-      const args = { command: 'reload' };
-      const message = { type: 'utils', args: args };
-      ws.send(JSON.stringify(message));
     };
 
-    ws.onmessage = async (event) => {
-      try {
-        const parsedData = JSON.parse(event.data);
+    ws.onmessage = (event) => {
+      const parsedData = JSON.parse(event.data);
 
-        if (parsedData.agr_data_db) {
-          setAgrDataDb(parsedData.agr_data_db.map((data: any) => convertData(data)));
-          console.log('agr_data_db', parsedData.agr_data_db);
-        }
+      if (parsedData.agr_data_db) {
+        setAgrDataDb(parsedData.agr_data_db);
+      }
 
-        if (parsedData.mqtt_data_db) {
-          const convertedMqttDataDb = parsedData.mqtt_data_db.map((data: any) => convertData(data));
-          setMqttDataDb(convertedMqttDataDb);
+      if (parsedData.mqtt_data_db) {
+        setMqttDataDb(parsedData.mqtt_data_db);
+      }
 
-          convertedMqttDataDb.forEach((data: ElicitData | RadarUsbData | RadarWifiData) => {
-            if ((data as ElicitData).data.address) {
-              setElicitData((prevData) => [...prevData, data as ElicitData]);
-            } else if ((data as RadarUsbData).data.ID) {
-              setRadarUsbData((prevData) => [...prevData, data as RadarUsbData]);
-            } else if ((data as RadarWifiData).data.ip) {
-              setRadarWifiData((prevData) => [...prevData, data as RadarWifiData]);
-            }
-          });
-        }
+      if (parsedData.agr_data) {
+        setAgrData(parsedData.agr_data);
+        setAgrDataDb(prev => [...prev, parsedData.agr_data]);
 
-        if (parsedData.agr_data) {
-          setAgrData(convertData(parsedData.agr_data));
-          console.log('agr_data', parsedData.agr_data);
-        }
+      }
 
-        if (parsedData.mqtt_data) {
-          const convertedData = convertData(parsedData.mqtt_data);
+      if (parsedData.mqtt_data) {
+        setMqttData(parsedData.mqtt_data);
+        setMqttDataDb(prev => [...prev, parsedData.mqtt_data]);
 
-          if (convertedData.data.address) {
-            setElicitData((prevData) => [...prevData, convertedData as ElicitData]);
-            setMqttData(convertedData as ElicitData);
-          } else if (convertedData.data.ID) {
-            setRadarUsbData((prevData) => [...prevData, convertedData as RadarUsbData]);
-            setMqttData(convertedData as RadarUsbData);
-          } else if (convertedData.data.ip) {
-            setRadarWifiData((prevData) => [...prevData, convertedData as RadarWifiData]);
-            setMqttData(convertedData as RadarWifiData);
-          }
-
-          console.log('mqtt_data', parsedData.mqtt_data);
-        }
-      } catch (error) {
-        console.error('Error parsing JSON:', error);
       }
     };
 
@@ -277,7 +221,6 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
         isConnected,
         agrData,
         mqttData,
-        ackPromises,
         agrDataDb,
         mqttDataDb,
         notifyDataDb,
