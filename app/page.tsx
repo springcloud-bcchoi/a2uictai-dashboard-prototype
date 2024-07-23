@@ -155,6 +155,8 @@ export default function Home() {
       <p className="mb-4 text-center">WebSocket Connected: {isConnected ? 'Yes' : 'No'}</p>
 
       {Object.entries(groupedData).map(([router_id, data]) => {
+        if (router_id === 'unknown' || !/^[A-Za-z0-9]{4}$/.test(router_id)) return null;
+
         const isHighlightedAgr = highlightedRouters[router_id]?.agr;
         const isHighlightedMqtt = highlightedRouters[router_id]?.mqtt;
         const highlightClass = isHighlightedAgr ? 'text-yellow-500 font-bold' : isHighlightedMqtt ? 'text-blue-500 font-bold' : 'text-white';
