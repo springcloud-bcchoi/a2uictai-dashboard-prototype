@@ -28,6 +28,42 @@ const sites = [
   }
 ];
 
+const alerts: AlertData[] = [
+  {
+    summary: "High CPU Usage",
+    status: "firing",
+    topic_id: "seoul/cpu",
+    alertname: "CPUHigh",
+    description: "CPU usage has exceeded 90%",
+    job: "server-monitor",
+    severity: "critical",
+    startsAt: "2023-07-23T10:00:00Z",
+    endsAt: "2023-07-23T10:30:00Z"
+  },
+  {
+    summary: "Memory Leak",
+    status: "resolved",
+    topic_id: "busan/memory",
+    alertname: "MemoryLeak",
+    description: "Memory usage is steadily increasing",
+    job: "server-monitor",
+    severity: "warning",
+    startsAt: "2023-07-22T08:00:00Z",
+    endsAt: "2023-07-22T09:00:00Z"
+  },
+  {
+    summary: "Disk Space Low",
+    status: "firing",
+    topic_id: "incheon/disk",
+    alertname: "DiskLow",
+    description: "Disk space is below 10%",
+    job: "server-monitor",
+    severity: "critical",
+    startsAt: "2023-07-23T12:00:00Z",
+    endsAt: "2023-07-23T12:45:00Z"
+  }
+];
+
 interface GroupedData {
   [router_id: string]: {
     agrData: AgrData[];
@@ -166,35 +202,6 @@ export default function Home() {
           </div>
         );
       })}
-
-      <div className="mt-8">
-        <h2 className="text-xl font-bold mb-4">Notify Data</h2>
-        <table className="min-w-full bg-gray-800 text-white">
-          <thead>
-          <tr>
-            <th className="px-4 py-2">Tunnel ID</th>
-            <th className="px-4 py-2">Tunnel Name</th>
-            <th className="px-4 py-2">Alert Name</th>
-            <th className="px-4 py-2">Name</th>
-            <th className="px-4 py-2">New Status</th>
-            <th className="px-4 py-2">Timestamp</th>
-          </tr>
-          </thead>
-          <tbody>
-          {notifyDataDb.map((notify: NotifyData, index: number) => (
-            <tr key={index} className="bg-gray-700 border-b border-gray-600">
-              <td className="px-4 py-2">{notify.tunnel_id}</td>
-              <td className="px-4 py-2">{notify.tunnel_name}</td>
-              <td className="px-4 py-2">{notify.alert_name}</td>
-              <td className="px-4 py-2">{notify.name}</td>
-              <td className="px-4 py-2">{notify.new_status}</td>
-              <td className="px-4 py-2">{notify.timestamp}</td>
-            </tr>
-          ))}
-          </tbody>
-        </table>
-      </div>
-
       <div className="mt-8">
         <h2 className="text-xl font-bold mb-4">Alert Data</h2>
         <table className="min-w-full bg-gray-800 text-white">
