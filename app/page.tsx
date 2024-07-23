@@ -1,6 +1,6 @@
 'use client';
 
-import {useContext, useState, useEffect} from "react";
+import {useContext, useState, useEffect, useRef} from "react";
 import {AgrData, ElicitData, RadarUsbData, RadarWifiData, Wss} from '@/components/Wss';
 import Site from "@/components/Site";
 import AlertTable from "@/components/AlertTable";
@@ -109,12 +109,12 @@ const useHighlightUpdate = (
   const [highlightedRouters, setHighlightedRouters] = useState<{
     [key: string]: { agr: boolean; mqtt: boolean; timestamp: string; type: string }
   }>({});
-  const [timeouts, setTimeouts] = useState<{ [key: string]: NodeJS.Timeout }>({});
+  const timeouts = useRef<{ [key: string]: NodeJS.Timeout }>({});
 
   const updateHighlight = (routerId: string, type: 'agr' | 'mqtt') => {
     const timestamp = new Date().toLocaleTimeString();
 
-    if (timeouts[routerId]) clearTimeout(timeouts[routerId]);
+    if (timeouts.current[routerId]) clearTimeout(timeouts.current[routerId]);
 
     setHighlightedRouters(prev => ({
       ...prev,
@@ -126,16 +126,10 @@ const useHighlightUpdate = (
         ...prev,
         [routerId]: {...prev[routerId], [type]: false}
       }));
-      setTimeouts(prev => {
-        const {[routerId]: _, ...rest} = prev;
-        return rest;
-      });
+      delete timeouts.current[routerId];
     }, 100);
 
-    setTimeouts(prev => ({
-      ...prev,
-      [routerId]: timeout
-    }));
+    timeouts.current[routerId] = timeout;
   };
 
   useEffect(() => {
@@ -185,7 +179,7 @@ export default function Home() {
         const isHighlightedAgr = highlightedRouters[router_id]?.agr;
         const isHighlightedMqtt = highlightedRouters[router_id]?.mqtt;
         const timestamp = highlightedRouters[router_id]?.timestamp;
-        const updateType = highlightedRouters[router_id]?.type;
+        const updateType = highlightedRouters[router_id]?.type === 'agr' ? 'router' : 'device';
         const highlightClass = isHighlightedAgr ? 'text-yellow-500 font-bold' : isHighlightedMqtt ? 'text-blue-500 font-bold' : 'text-white';
 
         return (
