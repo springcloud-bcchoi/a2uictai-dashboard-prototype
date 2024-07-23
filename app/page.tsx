@@ -111,7 +111,7 @@ const useHighlightUpdate = (
   }>({});
   const [timeouts, setTimeouts] = useState<{ [key: string]: NodeJS.Timeout }>({});
 
-  const updateHighlight = (routerId: string, type: 'router' | 'device') => {
+  const updateHighlight = (routerId: string, type: 'agr' | 'mqtt') => {
     const timestamp = new Date().toLocaleTimeString();
 
     if (timeouts[routerId]) clearTimeout(timeouts[routerId]);
@@ -141,7 +141,7 @@ const useHighlightUpdate = (
   useEffect(() => {
     if (latestAgrData) {
       const routerId = latestAgrData.data.router_id;
-      updateHighlight(routerId, 'router');
+      updateHighlight(routerId, 'agr');
     }
   }, [latestAgrData]);
 
@@ -154,7 +154,7 @@ const useHighlightUpdate = (
         device_id_number = device_id.split('=')[1];
       }
 
-      updateHighlight(router_id, 'device');
+      updateHighlight(router_id, 'mqtt');
     }
   }, [latestMqttData]);
 
