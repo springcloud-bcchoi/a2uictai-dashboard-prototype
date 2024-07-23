@@ -1,7 +1,7 @@
 'use client';
 
 import { useContext, useState, useEffect } from "react";
-import { AgrData, ElicitData, RadarUsbData, RadarWifiData, Wss } from '@/components/Wss';
+import { AgrData, ElicitData, RadarUsbData, RadarWifiData, NotifyData, AlertData, Wss } from '@/components/Wss';
 
 interface GroupedData {
   [router_id: string]: {
@@ -76,7 +76,7 @@ const useHighlightUpdate = (
 };
 
 export default function Home() {
-  const { isConnected, agrDataDb, mqttDataDb, latestAgrData, latestMqttData } = useContext(Wss);
+  const { isConnected, agrDataDb, mqttDataDb, latestAgrData, latestMqttData, notifyDataDb, alertDataDb } = useContext(Wss);
   const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({});
   const groupedData = groupDataByRouterId(agrDataDb, mqttDataDb);
   const highlightedRouters = useHighlightUpdate(latestAgrData, latestMqttData);
@@ -141,6 +141,68 @@ export default function Home() {
           </div>
         );
       })}
+
+      <div className="mt-8">
+        <h2 className="text-xl font-bold mb-4">Notify Data</h2>
+        <table className="min-w-full bg-gray-800 text-white">
+          <thead>
+          <tr>
+            <th className="px-4 py-2">Tunnel ID</th>
+            <th className="px-4 py-2">Tunnel Name</th>
+            <th className="px-4 py-2">Alert Name</th>
+            <th className="px-4 py-2">Name</th>
+            <th className="px-4 py-2">New Status</th>
+            <th className="px-4 py-2">Timestamp</th>
+          </tr>
+          </thead>
+          <tbody>
+          {notifyDataDb.map((notify: NotifyData, index: number) => (
+            <tr key={index} className="bg-gray-700 border-b border-gray-600">
+              <td className="px-4 py-2">{notify.tunnel_id}</td>
+              <td className="px-4 py-2">{notify.tunnel_name}</td>
+              <td className="px-4 py-2">{notify.alert_name}</td>
+              <td className="px-4 py-2">{notify.name}</td>
+              <td className="px-4 py-2">{notify.new_status}</td>
+              <td className="px-4 py-2">{notify.timestamp}</td>
+            </tr>
+          ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="mt-8">
+        <h2 className="text-xl font-bold mb-4">Alert Data</h2>
+        <table className="min-w-full bg-gray-800 text-white">
+          <thead>
+          <tr>
+            <th className="px-4 py-2">Summary</th>
+            <th className="px-4 py-2">Status</th>
+            <th className="px-4 py-2">Topic ID</th>
+            <th className="px-4 py-2">Alert Name</th>
+            <th className="px-4 py-2">Description</th>
+            <th className="px-4 py-2">Job</th>
+            <th className="px-4 py-2">Severity</th>
+            <th className="px-4 py-2">Starts At</th>
+            <th className="px-4 py-2">Ends At</th>
+          </tr>
+          </thead>
+          <tbody>
+          {alertDataDb.map((alert: AlertData, index: number) => (
+            <tr key={index} className="bg-gray-700 border-b border-gray-600">
+              <td className="px-4 py-2">{alert.summary}</td>
+              <td className="px-4 py-2">{alert.status}</td>
+              <td className="px-4 py-2">{alert.topic_id}</td>
+              <td className="px-4 py-2">{alert.alertname}</td>
+              <td className="px-4 py-2">{alert.description}</td>
+              <td className="px-4 py-2">{alert.job}</td>
+              <td className="px-4 py-2">{alert.severity}</td>
+              <td className="px-4 py-2">{alert.startsAt}</td>
+              <td className="px-4 py-2">{alert.endsAt}</td>
+            </tr>
+          ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
