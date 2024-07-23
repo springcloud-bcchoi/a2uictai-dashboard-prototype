@@ -1,7 +1,7 @@
 'use client';
 
 import { useContext, useState, useEffect } from "react";
-import { AgrData, ElicitData, RadarUsbData, RadarWifiData, NotifyData, AlertData, Wss } from '@/components/Wss';
+import { AgrData, ElicitData, RadarUsbData, RadarWifiData, AlertData, Wss } from '@/components/Wss';
 import Site from "@/components/Site";
 
 const sites = [
@@ -137,7 +137,7 @@ const useHighlightUpdate = (
 };
 
 export default function Home() {
-  const { isConnected, agrDataDb, mqttDataDb, latestAgrData, latestMqttData, notifyDataDb, alertDataDb } = useContext(Wss);
+  const { isConnected, agrDataDb, mqttDataDb, latestAgrData, latestMqttData } = useContext(Wss);
   const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({});
   const groupedData = groupDataByRouterId(agrDataDb, mqttDataDb);
   const highlightedRouters = useHighlightUpdate(latestAgrData, latestMqttData);
@@ -202,9 +202,10 @@ export default function Home() {
           </div>
         );
       })}
+
       <div className="mt-8">
         <h2 className="text-xl font-bold mb-4">Alert Data</h2>
-        <table className="min-w-full bg-gray-800 text-white">
+        <table className="min-w-full bg-gray-800 text-white text-sm">
           <thead>
           <tr>
             <th className="px-4 py-2">Summary</th>
@@ -219,8 +220,11 @@ export default function Home() {
           </tr>
           </thead>
           <tbody>
-          {alertDataDb.map((alert: AlertData, index: number) => (
-            <tr key={index} className="bg-gray-700 border-b border-gray-600">
+          {alerts.map((alert, index) => (
+            <tr
+              key={index}
+              className={`border-b border-gray-600 ${alert.status === 'firing' ? 'bg-red-600' : 'bg-gray-700'}`}
+            >
               <td className="px-4 py-2">{alert.summary}</td>
               <td className="px-4 py-2">{alert.status}</td>
               <td className="px-4 py-2">{alert.topic_id}</td>
@@ -235,6 +239,7 @@ export default function Home() {
           </tbody>
         </table>
       </div>
+
       <div className="mt-8">
         <h2 className="text-xl font-bold mb-4">Site Locations</h2>
         <Site siteData={sites} />
