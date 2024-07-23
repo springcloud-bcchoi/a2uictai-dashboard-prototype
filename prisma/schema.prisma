@@ -1,0 +1,44 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("TRANSACTION_MODE")
+  directUrl = env("SESSION_MODE")
+}
+
+model Device {
+  id       Int     @id @default(autoincrement())
+  deviceId String  @unique
+  routerId Int
+  router   Router  @relation(fields: [routerId], references: [id])
+  name     String?
+  desc     String?
+}
+
+model Router {
+  id       Int      @id @default(autoincrement())
+  routerId String   @unique
+  siteId   Int
+  site     Site     @relation(fields: [siteId], references: [id])
+  name     String?
+  desc     String?
+  Device   Device[]
+}
+
+model Site {
+  id        Int      @id @default(autoincrement())
+  latitude  Float
+  longitude Float
+  address   String
+  name      String
+  routers   Router[]
+  desc      String?
+}
