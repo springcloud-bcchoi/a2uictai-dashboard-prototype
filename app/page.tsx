@@ -85,7 +85,12 @@ const groupDataByRouterId = (agrDataDb: AgrData[], mqttDataDb: (ElicitData | Rad
 
   mqttDataDb.forEach(data => {
     const [router_id, device_id] = data.topic_id.split('/');
-    const device_id_number = device_id.split('=')[1]; // Extract the number after '='
+    let device_id_number = device_id;
+
+    if (device_id.includes('=')) {
+      device_id_number = device_id.split('=')[1];
+    }
+
     if (!groupedData[router_id]) {
       groupedData[router_id] = { agrData: [], mqttData: [] };
     }
@@ -138,8 +143,14 @@ const useHighlightUpdate = (
 
   useEffect(() => {
     if (latestMqttData) {
-      const routerId = latestMqttData.topic_id.split('/')[0];
-      updateHighlight(routerId, 'mqtt');
+      const [router_id, device_id] = latestMqttData.topic_id.split('/');
+      let device_id_number = device_id;
+
+      if (device_id.includes('=')) {
+        device_id_number = device_id.split('=')[1];
+      }
+
+      updateHighlight(router_id, 'mqtt');
     }
   }, [latestMqttData]);
 
