@@ -187,7 +187,8 @@ export default function Home() {
                className={`border-b-4 pb-4 mb-6 ${isHighlightedAgr ? 'border-yellow-500' : isHighlightedMqtt ? 'border-blue-500' : 'border-gray-700'}`}>
             <h2 className={`cursor-pointer text-xl ${highlightClass} mb-2`} onClick={() => toggleSection(router_id)}>
               Router ID: {router_id} {timestamp &&
-                <span className="text-sm text-gray-500">({updateType} update at {timestamp})</span>}
+                <span
+                    className={`text-sm ${updateType === 'router' ? 'text-yellow-500' : 'text-blue-500'}`}>({updateType} update at {timestamp})</span>}
             </h2>
 
             <div className="ml-4">
