@@ -3,6 +3,7 @@
 import { useContext, useState, useEffect } from "react";
 import { AgrData, ElicitData, RadarUsbData, RadarWifiData, AlertData, Wss } from '@/components/Wss';
 import Site from "@/components/Site";
+import AlertTable from "@/components/AlertTable";
 
 const sites = [
   {
@@ -98,38 +99,42 @@ const useHighlightUpdate = (
   latestMqttData: ElicitData | RadarUsbData | RadarWifiData | null
 ): { [key: string]: { agr: boolean; mqtt: boolean } } => {
   const [highlightedRouters, setHighlightedRouters] = useState<{ [key: string]: { agr: boolean; mqtt: boolean } }>({});
+  const [timeouts, setTimeouts] = useState<{ [key: string]: NodeJS.Timeout }>({});
+
+  const updateHighlight = (routerId: string, type: 'agr' | 'mqtt') => {
+    if (timeouts[routerId]) clearTimeout(timeouts[routerId]);
+
+    setHighlightedRouters(prev => ({
+      ...prev,
+      [routerId]: { ...prev[routerId], [type]: true }
+    }));
+
+    const timeout = setTimeout(() => {
+      setHighlightedRouters(prev => ({
+        ...prev,
+        [routerId]: { ...prev[routerId], [type]: false }
+      }));
+    }, 500);
+
+    setTimeouts(prev => ({
+      ...prev,
+      [routerId]: timeout
+    }));
+
+    return () => clearTimeout(timeout);
+  };
 
   useEffect(() => {
     if (latestAgrData) {
       const routerId = latestAgrData.data.router_id;
-      setHighlightedRouters(prev => ({
-        ...prev,
-        [routerId]: { ...prev[routerId], agr: true }
-      }));
-      const timeout = setTimeout(() => {
-        setHighlightedRouters(prev => ({
-          ...prev,
-          [routerId]: { ...prev[routerId], agr: false }
-        }));
-      }, 100);
-      return () => clearTimeout(timeout);
+      return updateHighlight(routerId, 'agr');
     }
   }, [latestAgrData]);
 
   useEffect(() => {
     if (latestMqttData) {
       const routerId = latestMqttData.topic_id.split('/')[0];
-      setHighlightedRouters(prev => ({
-        ...prev,
-        [routerId]: { ...prev[routerId], mqtt: true }
-      }));
-      const timeout = setTimeout(() => {
-        setHighlightedRouters(prev => ({
-          ...prev,
-          [routerId]: { ...prev[routerId], mqtt: false }
-        }));
-      }, 100);
-      return () => clearTimeout(timeout);
+      return updateHighlight(routerId, 'mqtt');
     }
   }, [latestMqttData]);
 
@@ -205,44 +210,8 @@ export default function Home() {
         );
       })}
 
-      <div className="mt-8">
-        <h2 className="text-xl font-bold mb-4">Alert Data</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-gray-800 text-white text-sm">
-            <thead>
-            <tr>
-              <th className="px-4 py-2">Summary</th>
-              <th className="px-4 py-2">Status</th>
-              <th className="px-4 py-2">Topic ID</th>
-              <th className="px-4 py-2">Alert Name</th>
-              <th className="px-4 py-2">Description</th>
-              <th className="px-4 py-2">Job</th>
-              <th className="px-4 py-2">Severity</th>
-              <th className="px-4 py-2">Starts At</th>
-              <th className="px-4 py-2">Ends At</th>
-            </tr>
-            </thead>
-            <tbody>
-            {alerts.map((alert, index) => (
-              <tr
-                key={index}
-                className={`border-b border-gray-600 ${alert.status === 'firing' ? 'bg-red-600' : 'bg-gray-700'}`}
-              >
-                <td className="px-4 py-2">{alert.summary}</td>
-                <td className="px-4 py-2">{alert.status}</td>
-                <td className="px-4 py-2">{alert.topic_id}</td>
-                <td className="px-4 py-2">{alert.alertname}</td>
-                <td className="px-4 py-2">{alert.description}</td>
-                <td className="px-4 py-2">{alert.job}</td>
-                <td className="px-4 py-2">{alert.severity}</td>
-                <td className="px-4 py-2">{alert.startsAt}</td>
-                <td className="px-4 py-2">{alert.endsAt}</td>
-              </tr>
-            ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <AlertTable alerts={alerts} />
+
 
       <div className="mt-8">
         <h2 className="text-xl font-bold mb-4">Site Locations</h2>
