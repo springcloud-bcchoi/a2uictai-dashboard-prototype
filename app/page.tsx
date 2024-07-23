@@ -84,11 +84,12 @@ const groupDataByRouterId = (agrDataDb: AgrData[], mqttDataDb: (ElicitData | Rad
   });
 
   mqttDataDb.forEach(data => {
-    const router_id = data.topic_id.split('/')[0]; // Assuming the topic_id format is router_id/device_id
+    const [router_id, device_id] = data.topic_id.split('/');
+    const device_id_number = device_id.split('=')[1]; // Extract the number after '='
     if (!groupedData[router_id]) {
       groupedData[router_id] = { agrData: [], mqttData: [] };
     }
-    groupedData[router_id].mqttData.push(data);
+    groupedData[router_id].mqttData.push({ ...data, topic_id: `${router_id}/${device_id_number}` });
   });
 
   return groupedData;
@@ -97,16 +98,18 @@ const groupDataByRouterId = (agrDataDb: AgrData[], mqttDataDb: (ElicitData | Rad
 const useHighlightUpdate = (
   latestAgrData: AgrData | null,
   latestMqttData: ElicitData | RadarUsbData | RadarWifiData | null
-): { [key: string]: { agr: boolean; mqtt: boolean } } => {
-  const [highlightedRouters, setHighlightedRouters] = useState<{ [key: string]: { agr: boolean; mqtt: boolean } }>({});
+): { [key: string]: { agr: boolean; mqtt: boolean; timestamp: string; type: string } } => {
+  const [highlightedRouters, setHighlightedRouters] = useState<{ [key: string]: { agr: boolean; mqtt: boolean; timestamp: string; type: string } }>({});
   const [timeouts, setTimeouts] = useState<{ [key: string]: NodeJS.Timeout }>({});
 
-  const updateHighlight = (routerId: string, type: 'agr' | 'mqtt') => {
+  const updateHighlight = (routerId: string, type: 'router' | 'mqtt') => {
+    const timestamp = new Date().toLocaleTimeString();
+
     if (timeouts[routerId]) clearTimeout(timeouts[routerId]);
 
     setHighlightedRouters(prev => ({
       ...prev,
-      [routerId]: { ...prev[routerId], [type]: true }
+      [routerId]: { ...prev[routerId], [type]: true, timestamp, type }
     }));
 
     const timeout = setTimeout(() => {
@@ -129,7 +132,7 @@ const useHighlightUpdate = (
   useEffect(() => {
     if (latestAgrData) {
       const routerId = latestAgrData.data.router_id;
-      updateHighlight(routerId, 'agr');
+      updateHighlight(routerId, 'router');
     }
   }, [latestAgrData]);
 
@@ -166,12 +169,14 @@ export default function Home() {
 
         const isHighlightedAgr = highlightedRouters[router_id]?.agr;
         const isHighlightedMqtt = highlightedRouters[router_id]?.mqtt;
+        const timestamp = highlightedRouters[router_id]?.timestamp;
+        const updateType = highlightedRouters[router_id]?.type;
         const highlightClass = isHighlightedAgr ? 'text-yellow-500 font-bold' : isHighlightedMqtt ? 'text-blue-500 font-bold' : 'text-white';
 
         return (
           <div key={router_id} className={`border-b-4 pb-4 mb-6 ${isHighlightedAgr ? 'border-yellow-500' : isHighlightedMqtt ? 'border-blue-500' : 'border-gray-700'}`}>
             <h2 className={`cursor-pointer text-xl ${highlightClass} mb-2`} onClick={() => toggleSection(router_id)}>
-              Router ID: {router_id}
+              Router ID: {router_id} {timestamp && <span className="text-sm text-gray-500">({updateType} update at {timestamp})</span>}
             </h2>
 
             <div className="ml-4">
