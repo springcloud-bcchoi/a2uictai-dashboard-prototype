@@ -2,6 +2,31 @@
 
 import { useContext, useState, useEffect } from "react";
 import { AgrData, ElicitData, RadarUsbData, RadarWifiData, NotifyData, AlertData, Wss } from '@/components/Wss';
+import Site from "@/components/Site";
+
+const sites = [
+  {
+    id: 1,
+    latitude: 37.5665,
+    longitude: 126.978,
+    address: "Seoul, South Korea",
+    name: "Seoul Site"
+  },
+  {
+    id: 2,
+    latitude: 35.1796,
+    longitude: 129.0756,
+    address: "Busan, South Korea",
+    name: "Busan Site"
+  },
+  {
+    id: 3,
+    latitude: 37.4563,
+    longitude: 126.7052,
+    address: "Incheon, South Korea",
+    name: "Incheon Site"
+  }
+];
 
 interface GroupedData {
   [router_id: string]: {
@@ -202,6 +227,10 @@ export default function Home() {
           ))}
           </tbody>
         </table>
+      </div>
+      <div className="mt-8">
+        <h2 className="text-xl font-bold mb-4">Site Locations</h2>
+        <Site siteData={sites} />
       </div>
     </div>
   );
