@@ -1,7 +1,7 @@
 'use client';
 
 import { useContext, useState, useEffect } from "react";
-import { AgrData, ElicitData, RadarUsbData, RadarWifiData, AlertData, Wss } from '@/components/Wss';
+import { AgrData, ElicitData, RadarUsbData, RadarWifiData, Wss } from '@/components/Wss';
 import Site from "@/components/Site";
 import AlertTable from "@/components/AlertTable";
 
@@ -29,7 +29,7 @@ const sites = [
   }
 ];
 
-const alerts: AlertData[] = [
+const alerts = [
   {
     summary: "High CPU Usage",
     status: "firing",
@@ -114,27 +114,29 @@ const useHighlightUpdate = (
         ...prev,
         [routerId]: { ...prev[routerId], [type]: false }
       }));
-    }, 500);
+      setTimeouts(prev => {
+        const { [routerId]: _, ...rest } = prev;
+        return rest;
+      });
+    }, 100);
 
     setTimeouts(prev => ({
       ...prev,
       [routerId]: timeout
     }));
-
-    return () => clearTimeout(timeout);
   };
 
   useEffect(() => {
     if (latestAgrData) {
       const routerId = latestAgrData.data.router_id;
-      return updateHighlight(routerId, 'agr');
+      updateHighlight(routerId, 'agr');
     }
   }, [latestAgrData]);
 
   useEffect(() => {
     if (latestMqttData) {
       const routerId = latestMqttData.topic_id.split('/')[0];
-      return updateHighlight(routerId, 'mqtt');
+      updateHighlight(routerId, 'mqtt');
     }
   }, [latestMqttData]);
 
@@ -211,7 +213,6 @@ export default function Home() {
       })}
 
       <AlertTable alerts={alerts} />
-
 
       <div className="mt-8">
         <h2 className="text-xl font-bold mb-4">Site Locations</h2>
