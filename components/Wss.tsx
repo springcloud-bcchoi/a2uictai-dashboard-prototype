@@ -178,6 +178,17 @@ const updateMqttDataDb = (prevDb: (ElicitData | RadarUsbData | RadarWifiData)[],
   return db;
 };
 
+const updateAlertDataDb = (prevDb: AlertData[], newData: AlertData): AlertData[] => {
+  const db = [...prevDb];
+  const existingIndex = db.findIndex(item => item.topic_id === newData.topic_id && item.alertname === newData.alertname);
+  if (existingIndex !== -1) {
+    db[existingIndex] = newData;
+  } else {
+    db.push(newData);
+  }
+  return db;
+};
+
 export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }) => {
   const [webSocket, setWebSocket] = useState<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -227,6 +238,14 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
         setMqttData(parsedData.mqtt_data);
         setMqttDataDb(prev => updateMqttDataDb(prev, parsedData.mqtt_data));
         setLatestMqttData(parsedData.mqtt_data);
+      }
+      if (parsedData.alert_data) {
+        setAlertData(parsedData.alert_data);
+        setAlertDataDb(prev => updateAlertDataDb(prev, parsedData.alert_data));
+      }
+
+      if (parsedData.alert_data_db) {
+        setAlertDataDb(parsedData.alert_data_db);
       }
     };
 
