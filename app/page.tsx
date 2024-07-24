@@ -208,12 +208,14 @@ export default function Home() {
                 {expandedSections[`${router_id}-agr`] ? '-' : '+'} AGR Data
               </h3>
               {expandedSections[`${router_id}-agr`] && data.agrData.map((agr, index) => (
-                <div key={index} className="pl-6 border-l-2 border-gray-600 ml-4 mb-4">
+                <div key={index} className="pl-6 border-l-2 border-yellow-600 ml-4 mb-4">
                   <p><strong>Connection ID:</strong> {agr.connection_id}</p>
+                  <div className="my-4"></div>
                   <h4 className="font-semibold text-gray-400">Docker Status</h4>
                   {agr.data.docker_values.value.state && agr.data.docker_values.value.state.map((docker, i) => (
                     <p key={i}>{docker.name}: {docker.ps.Status} (Running: {docker.ps.Running ? 'Yes' : 'No'})</p>
                   ))}
+                  <div className="my-4"></div>
                   <h4 className="font-semibold text-gray-400">System Status</h4>
                   <p>CPU Usage: {agr.data.system_values.value.cpu_usage}</p>
                   <p>Memory Usage: {agr.data.system_values.value.mem_usage}</p>
@@ -228,7 +230,7 @@ export default function Home() {
                 {expandedSections[`${router_id}-mqtt`] ? '-' : '+'} MQTT Data
               </h3>
               {expandedSections[`${router_id}-mqtt`] && data.mqttData.map((mqtt, index) => (
-                <div key={index} className="pl-6 border-l-2 border-gray-600 ml-4 mb-4">
+                <div key={index} className="pl-6 border-l-2 border-blue-600 ml-4 mb-4">
                   <p><strong>Topic ID:</strong> {mqtt.topic_id}</p>
                   <p>Data: {JSON.stringify(mqtt.data, null, 2)}</p>
                 </div>
