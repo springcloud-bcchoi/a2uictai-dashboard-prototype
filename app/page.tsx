@@ -1,33 +1,12 @@
 'use client';
 
-import {useContext, useState, useEffect, useRef} from "react";
-import {AgrData, ElicitData, RadarUsbData, RadarWifiData, Wss} from '@/components/Wss';
-import Site from "@/components/Site";
+import { useContext, useState, useEffect, useRef } from "react";
+import { AgrData, ElicitData, RadarUsbData, RadarWifiData, Wss } from '@/components/Wss';
+import dynamic from 'next/dynamic';
 import AlertTable from "@/components/AlertTable";
+import Site, {SiteData} from "@/components/Site";
 
-const sites = [
-  {
-    id: 1,
-    latitude: 37.5665,
-    longitude: 126.978,
-    address: "Seoul, South Korea",
-    name: "Seoul Site"
-  },
-  {
-    id: 2,
-    latitude: 35.1796,
-    longitude: 129.0756,
-    address: "Busan, South Korea",
-    name: "Busan Site"
-  },
-  {
-    id: 3,
-    latitude: 37.4563,
-    longitude: 126.7052,
-    address: "Incheon, South Korea",
-    name: "Incheon Site"
-  }
-];
+const DynamicMap = dynamic(() => import('@/components/Map'), { ssr: false });
 
 const alerts = [
   {
@@ -72,13 +51,37 @@ interface GroupedData {
   };
 }
 
+interface RouterData {
+  routerId: string;
+  name: string;
+}
+
+
+const fetchRouterNames = async (): Promise<RouterData[]> => {
+  const response = await fetch('/api/routers');
+  if (!response.ok) {
+    throw new Error('Failed to fetch router names');
+  }
+  const data = await response.json();
+  return data.routers; // Adjust this line based on the actual structure of your API response
+};
+
+const fetchSiteData = async (): Promise<SiteData[]> => {
+  const response = await fetch('/api/sites');
+  if (!response.ok) {
+    throw new Error('Failed to fetch site data');
+  }
+  const data = await response.json();
+  return data.sites; // Adjust this line based on the actual structure of your API response
+};
+
 const groupDataByRouterId = (agrDataDb: AgrData[], mqttDataDb: (ElicitData | RadarUsbData | RadarWifiData)[]): GroupedData => {
   const groupedData: GroupedData = {};
 
   agrDataDb.forEach(data => {
-    const {router_id} = data.data;
+    const { router_id } = data.data;
     if (!groupedData[router_id]) {
-      groupedData[router_id] = {agrData: [], mqttData: []};
+      groupedData[router_id] = { agrData: [], mqttData: [] };
     }
     groupedData[router_id].agrData.push(data);
   });
@@ -94,9 +97,9 @@ const groupDataByRouterId = (agrDataDb: AgrData[], mqttDataDb: (ElicitData | Rad
     }
 
     if (!groupedData[router_id]) {
-      groupedData[router_id] = {agrData: [], mqttData: []};
+      groupedData[router_id] = { agrData: [], mqttData: [] };
     }
-    groupedData[router_id].mqttData.push({...data, topic_id: `${router_id}/${device_id_number}`});
+    groupedData[router_id].mqttData.push({ ...data, topic_id: `${router_id}/${device_id_number}` });
   });
 
   return groupedData;
@@ -118,13 +121,13 @@ const useHighlightUpdate = (
 
     setHighlightedRouters(prev => ({
       ...prev,
-      [routerId]: {...prev[routerId], [type]: true, timestamp, type}
+      [routerId]: { ...prev[routerId], [type]: true, timestamp, type }
     }));
 
     const timeout = setTimeout(() => {
       setHighlightedRouters(prev => ({
         ...prev,
-        [routerId]: {...prev[routerId], [type]: false}
+        [routerId]: { ...prev[routerId], [type]: false }
       }));
       delete timeouts.current[routerId];
     }, 100);
@@ -156,10 +159,42 @@ const useHighlightUpdate = (
 };
 
 export default function Home() {
-  const {isConnected, agrDataDb, mqttDataDb, latestAgrData, latestMqttData} = useContext(Wss);
+  const { isConnected, agrDataDb, mqttDataDb, latestAgrData, latestMqttData } = useContext(Wss);
   const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({});
+  const [routerNames, setRouterNames] = useState<{ [key: string]: string }>({});
+  const [siteData, setSiteData] = useState<SiteData[]>([]);
   const groupedData = groupDataByRouterId(agrDataDb, mqttDataDb);
   const highlightedRouters = useHighlightUpdate(latestAgrData, latestMqttData);
+
+  useEffect(() => {
+    const loadRouterNames = async () => {
+      try {
+        const routerData = await fetchRouterNames();
+        const routerNameMap = routerData.reduce((acc, router) => {
+          acc[router.routerId] = router.name;
+          return acc;
+        }, {} as { [key: string]: string });
+        setRouterNames(routerNameMap);
+      } catch (error) {
+        console.error('Failed to fetch router names', error);
+      }
+    };
+
+    loadRouterNames().then(r => null);
+  }, []);
+
+  useEffect(() => {
+    const loadSiteData = async () => {
+      try {
+        const siteData = await fetchSiteData();
+        setSiteData(siteData);
+      } catch (error) {
+        console.error('Failed to fetch site data', error);
+      }
+    };
+
+    loadSiteData().then(r => null);
+  }, []);
 
   const toggleSection = (key: string) => {
     setExpandedSections(prev => ({
@@ -176,6 +211,7 @@ export default function Home() {
       {Object.entries(groupedData).map(([router_id, data]) => {
         if (router_id === 'unknown' || !/^[A-Za-z0-9]{4}$/.test(router_id)) return null;
 
+        const routerName = routerNames[router_id] || '';
         const isHighlightedAgr = highlightedRouters[router_id]?.agr;
         const isHighlightedMqtt = highlightedRouters[router_id]?.mqtt;
         const timestamp = highlightedRouters[router_id]?.timestamp;
@@ -186,7 +222,7 @@ export default function Home() {
           <div key={router_id}
                className={`border-b-4 pb-4 mb-6 ${isHighlightedAgr ? 'border-yellow-500' : isHighlightedMqtt ? 'border-blue-500' : 'border-gray-700'}`}>
             <h2 className={`cursor-pointer text-xl ${highlightClass} mb-2`} onClick={() => toggleSection(router_id)}>
-              Router ID: {router_id} {timestamp &&
+              Router ID: {router_id} {routerName && `(${routerName})`} {timestamp &&
                 <span
                     className={`text-sm ${updateType === 'router' ? 'text-yellow-500' : 'text-blue-500'}`}>({updateType} update at {timestamp})</span>}
             </h2>
@@ -233,7 +269,13 @@ export default function Home() {
 
       <div className="mt-8">
         <h2 className="text-xl font-bold mb-4">Site Locations</h2>
-        <Site siteData={sites}/>
+        {siteData.length > 0 ? (
+          <div className="h-[700px] overflow-y-scroll">
+            <Site siteData={siteData}/>
+          </div>
+        ) : (
+          <p>Loading site data...</p>
+        )}
       </div>
     </div>
   );

@@ -5,7 +5,7 @@ import db from '@/app/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
-    const robots = await db.router.findMany({
+    const routers = await db.router.findMany({
       select: {
         routerId: true,
         name: true,
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      robots,
+      routers,
     });
   } catch (error) {
     console.error('Error fetching robots:', error);

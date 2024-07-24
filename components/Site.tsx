@@ -3,12 +3,13 @@ import React from "react";
 
 const DynamicMap = dynamic(() => import('../components/Map'), { ssr: false });
 
-interface SiteData {
+export interface SiteData {
   id: number;
   latitude: number;
   longitude: number;
   address: string;
   name: string;
+  desc: string;
 }
 
 interface SiteProps {
