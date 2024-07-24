@@ -1,53 +1,18 @@
 'use client';
 
 import { useContext, useState, useEffect, useRef } from "react";
-import { AgrData, ElicitData, RadarUsbData, RadarWifiData, Wss } from '@/components/Wss';
+import { AgrData, ElicitData, RadarUsbData, RadarWifiData, Wss, AlertData } from '@/components/Wss';
 import dynamic from 'next/dynamic';
 import AlertTable from "@/components/AlertTable";
-import Site, {SiteData} from "@/components/Site";
+import Site, { SiteData } from "@/components/Site";
 
 const DynamicMap = dynamic(() => import('@/components/Map'), { ssr: false });
-
-const alerts = [
-  {
-    summary: "High CPU Usage",
-    status: "firing",
-    topic_id: "seoul/cpu",
-    alertname: "CPUHigh",
-    description: "CPU usage has exceeded 90%",
-    job: "server-monitor",
-    severity: "critical",
-    startsAt: "2023-07-23T10:00:00Z",
-    endsAt: "2023-07-23T10:30:00Z"
-  },
-  {
-    summary: "Memory Leak",
-    status: "resolved",
-    topic_id: "busan/memory",
-    alertname: "MemoryLeak",
-    description: "Memory usage is steadily increasing",
-    job: "server-monitor",
-    severity: "warning",
-    startsAt: "2023-07-22T08:00:00Z",
-    endsAt: "2023-07-22T09:00:00Z"
-  },
-  {
-    summary: "Disk Space Low",
-    status: "firing",
-    topic_id: "incheon/disk",
-    alertname: "DiskLow",
-    description: "Disk space is below 10%",
-    job: "server-monitor",
-    severity: "critical",
-    startsAt: "2023-07-23T12:00:00Z",
-    endsAt: "2023-07-23T12:45:00Z"
-  }
-];
 
 interface GroupedData {
   [router_id: string]: {
     agrData: AgrData[];
     mqttData: (ElicitData | RadarUsbData | RadarWifiData)[];
+    alertData: AlertData[];
   };
 }
 
@@ -56,14 +21,13 @@ interface RouterData {
   name: string;
 }
 
-
 const fetchRouterNames = async (): Promise<RouterData[]> => {
   const response = await fetch('/api/routers');
   if (!response.ok) {
     throw new Error('Failed to fetch router names');
   }
   const data = await response.json();
-  return data.routers; // Adjust this line based on the actual structure of your API response
+  return data.routers;
 };
 
 const fetchSiteData = async (): Promise<SiteData[]> => {
@@ -72,16 +36,16 @@ const fetchSiteData = async (): Promise<SiteData[]> => {
     throw new Error('Failed to fetch site data');
   }
   const data = await response.json();
-  return data.sites; // Adjust this line based on the actual structure of your API response
+  return data.sites;
 };
 
-const groupDataByRouterId = (agrDataDb: AgrData[], mqttDataDb: (ElicitData | RadarUsbData | RadarWifiData)[]): GroupedData => {
+const groupDataByRouterId = (agrDataDb: AgrData[], mqttDataDb: (ElicitData | RadarUsbData | RadarWifiData)[], alertDataDb: AlertData[]): GroupedData => {
   const groupedData: GroupedData = {};
 
   agrDataDb.forEach(data => {
     const { router_id } = data.data;
     if (!groupedData[router_id]) {
-      groupedData[router_id] = { agrData: [], mqttData: [] };
+      groupedData[router_id] = { agrData: [], mqttData: [], alertData: [] };
     }
     groupedData[router_id].agrData.push(data);
   });
@@ -97,9 +61,18 @@ const groupDataByRouterId = (agrDataDb: AgrData[], mqttDataDb: (ElicitData | Rad
     }
 
     if (!groupedData[router_id]) {
-      groupedData[router_id] = { agrData: [], mqttData: [] };
+      groupedData[router_id] = { agrData: [], mqttData: [], alertData: [] };
     }
     groupedData[router_id].mqttData.push({ ...data, topic_id: `${router_id}/${device_id_number}` });
+  });
+
+  alertDataDb.forEach(data => {
+    const { topic_id } = data;
+    const [router_id] = topic_id.split('/');
+    if (!groupedData[router_id]) {
+      groupedData[router_id] = { agrData: [], mqttData: [], alertData: [] };
+    }
+    groupedData[router_id].alertData.push(data);
   });
 
   return groupedData;
@@ -159,11 +132,11 @@ const useHighlightUpdate = (
 };
 
 export default function Home() {
-  const { isConnected, agrDataDb, mqttDataDb, latestAgrData, latestMqttData } = useContext(Wss);
+  const { isConnected, agrDataDb, mqttDataDb, latestAgrData, latestMqttData, alertDataDb } = useContext(Wss);
   const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({});
   const [routerNames, setRouterNames] = useState<{ [key: string]: string }>({});
   const [siteData, setSiteData] = useState<SiteData[]>([]);
-  const groupedData = groupDataByRouterId(agrDataDb, mqttDataDb);
+  const groupedData = groupDataByRouterId(agrDataDb, mqttDataDb, alertDataDb);
   const highlightedRouters = useHighlightUpdate(latestAgrData, latestMqttData);
 
   useEffect(() => {
@@ -260,18 +233,35 @@ export default function Home() {
                   <p>Data: {JSON.stringify(mqtt.data, null, 2)}</p>
                 </div>
               ))}
+
+              <h3
+                onClick={() => toggleSection(`${router_id}-alerts`)}
+                className={`cursor-pointer text-lg font-semibold mb-2 ${expandedSections[`${router_id}-alerts`] ? 'text-red-500' : 'text-gray-400'}`}
+              >
+                {expandedSections[`${router_id}-alerts`] ? '-' : '+'} Alerts
+              </h3>
+              {expandedSections[`${router_id}-alerts`] && data.alertData.map((alert, index) => (
+                <div key={index} className="pl-6 border-l-2 border-red-600 ml-4 mb-4">
+                  <p><strong>Summary:</strong> {alert.summary}</p>
+                  <p><strong>Status:</strong> {alert.status}</p>
+                  <p><strong>Description:</strong> {alert.description}</p>
+                  <p><strong>Severity:</strong> {alert.severity}</p>
+                  <p><strong>Starts At:</strong> {alert.startsAt}</p>
+                  <p><strong>Ends At:</strong> {alert.endsAt}</p>
+                </div>
+              ))}
             </div>
           </div>
         );
       })}
 
-      <AlertTable alerts={alerts}/>
+      <AlertTable alerts={alertDataDb} />
 
       <div className="mt-8">
         <h2 className="text-xl font-bold mb-4">Site Locations</h2>
         {siteData.length > 0 ? (
           <div className="h-[700px] overflow-y-scroll">
-            <Site siteData={siteData}/>
+            <Site siteData={siteData} />
           </div>
         ) : (
           <p>Loading site data...</p>
