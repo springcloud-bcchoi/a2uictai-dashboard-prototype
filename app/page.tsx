@@ -39,6 +39,9 @@ const fetchSiteData = async (): Promise<SiteData[]> => {
   return data.sites;
 };
 
+const filterAgrDataBySourceIp = (agrDataDb: AgrData[]): AgrData[] => {
+  return agrDataDb.filter(data => data.data.sourceIp);
+};
 const groupDataByRouterId = (agrDataDb: AgrData[], mqttDataDb: (ElicitData | RadarUsbData | RadarWifiData)[], alertDataDb: AlertData[]): GroupedData => {
   const groupedData: GroupedData = {};
 
@@ -136,7 +139,11 @@ export default function Home() {
   const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({});
   const [routerNames, setRouterNames] = useState<{ [key: string]: string }>({});
   const [siteData, setSiteData] = useState<SiteData[]>([]);
-  const groupedData = groupDataByRouterId(agrDataDb, mqttDataDb, alertDataDb);
+  const groupedData = groupDataByRouterId(
+    filterAgrDataBySourceIp(agrDataDb),
+    mqttDataDb,
+    alertDataDb
+  );
   const highlightedRouters = useHighlightUpdate(latestAgrData, latestMqttData);
 
   useEffect(() => {
