@@ -54,7 +54,7 @@ const groupDataByRouterId = (agrDataDb: AgrData[], mqttDataDb: (ElicitData | Rad
   });
 
   mqttDataDb.forEach(data => {
-    if (data.topic_id.includes('ALIVE') || data.topic_id.includes('JOINCNF') || data.topic_id.includes('FFFF')) return;
+    if (data.topic_id.includes('ALIVE') || data.topic_id.includes('JOINCNF')) return;
 
     const [router_id, device_id] = data.topic_id.split('/');
     let device_id_number = device_id;
