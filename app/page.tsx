@@ -5,6 +5,7 @@ import { AgrData, ElicitData, RadarUsbData, RadarWifiData, Wss, AlertData } from
 import dynamic from 'next/dynamic';
 import AlertTable from "@/components/AlertTable";
 import Site, { SiteData } from "@/components/Site";
+import { MoonIcon, PowerIcon, SunIcon, ArrowPathIcon} from "@heroicons/react/24/outline";
 
 const DynamicMap = dynamic(() => import('@/components/Map'), { ssr: false });
 
@@ -186,8 +187,22 @@ export default function Home() {
   return (
     <div className="font-sans bg-gray-900 text-white min-h-screen p-4">
       <h1 className="text-3xl font-bold mb-4 text-center">A2UICT Dashboard</h1>
-      <p className="mb-4 text-center">WebSocket Connected: {isConnected ? 'Yes' : 'No'}</p>
-
+      <div className="flex flex-col items-center justify-start">
+        <p className="mb-4 text-center">WebSocket Connected: {isConnected ? 'Yes' : 'No'}</p>
+        {!isConnected && (
+          <div className="flex items-center text-red-500">
+            <span>WebSocket Disconnected</span>
+            <button
+              className="flex ml-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-700"
+              onClick={() => window.location.reload()}
+              // onClick={reconnect}
+            >
+              <ArrowPathIcon className="w-5 h-5 mr-2" />
+              Reload
+            </button>
+          </div>
+        )}
+      </div>
       {Object.entries(groupedData).map(([router_id, data]) => {
         if (router_id === 'unknown' || !/^[A-Za-z0-9]{4}$/.test(router_id)) return null;
 
