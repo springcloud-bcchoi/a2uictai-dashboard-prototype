@@ -9,17 +9,19 @@ import "leaflet/dist/leaflet.css";
 import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css";
 import "leaflet-defaulticon-compatibility";
 import React, {useEffect, useState} from "react";
+import { Divider, Text } from "@chakra-ui/react";
 
 
 interface MapProps {
-  routers: { id: string; latitude: number; longitude: number; name: string }[];
+  locations: { id: string; latitude: number; longitude: number; name: string; addr: string }[];
   center: [number, number];
   zoom: number;
   initialMapType: 'site' | 'robot';
+  scrollWheelZoom: boolean;
 }
 
 
-const Map: React.FC<MapProps> = ({routers, center, zoom, initialMapType}) => {
+const Map: React.FC<MapProps> = ({locations, center, zoom, initialMapType}) => {
   const [mapType, setMapType] = useState<'site' | 'robot'>(initialMapType);
   const url =
     mapType === 'site'
@@ -30,16 +32,20 @@ const Map: React.FC<MapProps> = ({routers, center, zoom, initialMapType}) => {
     <MapContainer
       center={center}
       zoom={zoom}
-      scrollWheelZoom={false}
+      scrollWheelZoom={true}
       style={{height: "100%", width: "100%"}}
     >
       <TileLayer
         url={url}
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors <a href="https://a2uictai-dashboard-prototype.vercel.app/">A2UICT</a>'
       />
-      {routers.map((router) => (
-        <Marker key={router.id} position={[router.latitude, router.longitude]} draggable={false}>
-          <Popup>{`${router.id}: ${router.name}`}</Popup>
+      {locations.map((location) => (
+        <Marker key={location.id} position={[location.latitude, location.longitude]} draggable={false}>
+          <Popup>
+            <Text fontSize='sm' fontWeight='bold'>{location.name}</Text>
+              <Divider/>
+            <Text >{location.addr}</Text>
+          </Popup>
         </Marker>
       ))}
     </MapContainer>

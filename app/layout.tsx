@@ -1,9 +1,8 @@
 import type {Metadata} from "next";
-import {Inter} from "next/font/google";
 import "./globals.css";
 import { WebSocketProvider } from '@/components/Wss';
+import { inter } from "@/public/fonts/fonts";
 
-const inter = Inter({subsets: ["latin"]});
 
 export const metadata: Metadata = {
   title: "A2UICT IOT Dashboard",
