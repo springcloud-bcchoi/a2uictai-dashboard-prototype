@@ -9,9 +9,14 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@chakra-ui/react": "^2.8.2",
+    "@emotion/react": "^11.13.3",
+    "@emotion/styled": "^11.13.0",
     "@heroicons/react": "^2.1.5",
     "@prisma/client": "^5.17.0",
     "@types/leaflet": "^1.9.12",
+    "clsx": "^2.1.1",
+    "framer-motion": "^11.5.4",
     "leaflet": "^1.9.4",
     "leaflet-defaulticon-compatibility": "^0.1.2",
     "leaflet-geosearch": "^4.0.0",
