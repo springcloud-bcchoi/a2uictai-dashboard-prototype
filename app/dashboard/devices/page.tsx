@@ -22,7 +22,7 @@ import { SearchProvider, useSearch } from '@/components/searchbar/SearchContext'
 import { useDisclosure } from '@chakra-ui/react';
 import NotSearched from '@/components/searchbar/NotSearched';
 
-const deviceUpdate = (latestMqttData: ElicitData | RadarUsbData | RadarWifiData | TubeTrailerData | null
+const useDeviceUpdate = (latestMqttData: ElicitData | RadarUsbData | RadarWifiData | TubeTrailerData | null
 ): { [key: string]: { mqtt: boolean; timestamp: string; type: string } } => {
   const [highlightedRouters, setHighlightedRouters] = useState<{
     [key: string]: { agr: boolean; mqtt: boolean; timestamp: string; type: string }
@@ -123,7 +123,7 @@ export default function Page(){
   // const doorDb = doorData(mqttDataDb);
   // const buttonDb = buttonData(mqttDataDb);
   // const radarWifiDb = radarWifiData(mqttDataDb);
-  const devicesUpdateTime = deviceUpdate(latestMqttData);
+  const devicesUpdateTime = useDeviceUpdate(latestMqttData);
   const routerID = [
     ...deviceDb.map(item => item.router_id),
   ];
