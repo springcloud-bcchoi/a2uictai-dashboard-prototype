@@ -1,20 +1,24 @@
 import React from 'react';
-import { useSelected } from './RadioContext'; // ChipContext 가져오기
+import { useSelected } from './RadioContext'; // RadioContext 가져오기
 
+const WrappedRadio = (prop: { options: string[]; Component: React.FC<any> }) => {
+    const { options, Component } = prop;
 
-const WrappedRadio = (prop:{ options:string[], Component: React.FC<any> }) => {
-    const {options, Component} = prop;
-    const { selected, setSelected } = useSelected();
+    // useSelected에서 반환된 값을 selectedContext로 받아옵니다.
+    const selectedContext = useSelected();
+    const selected = selectedContext ? selectedContext.selected : null;
+    const setSelected = selectedContext ? selectedContext.setSelected : () => {};
+
     const isAllChipSelected = selected === '';
 
-    const handleOptionClick = (option:string) => {
+    const handleOptionClick = (option: string) => {
         if (option === '전체' || selected === option) {
             // '전체' chip 클릭 시, 다른 모든 chip을 선택 해제
             setSelected('');
         } else {
-                setSelected(option);
-            }
-    };   
+            setSelected(option);
+        }
+    };
 
     return (
         <div style={{
@@ -31,15 +35,15 @@ const WrappedRadio = (prop:{ options:string[], Component: React.FC<any> }) => {
                     ? (isAllChipSelected ? 'filled' : 'outlined')
                     : (selected === option ? 'filled' : 'outlined');
 
-                return(           
-                <Component
-                    key={index}
-                    label={option}
-                    onClick={() => handleOptionClick(option)}
-                    color={color}
-                    variant={variant}
-                    style={{ margin: 4 }}
-                />
+                return (
+                    <Component
+                        key={index}
+                        label={option}
+                        onClick={() => handleOptionClick(option)}
+                        color={color}
+                        variant={variant}
+                        style={{ margin: 4 }}
+                    />
                 );
             })}
         </div>
