@@ -2,14 +2,15 @@ import { SiteData } from "@/app/service/site";
 import dynamic from "next/dynamic";
 import React from "react";
 
-const DynamicMap = dynamic(() => import('../components/Map'), { ssr: false });
+const DynamicMap = dynamic(() => import('./Map'), { ssr: false });
 
 
 interface SiteProps {
   siteData: SiteData[];
+  path?: {base: string, rest?: string};
 }
 
-const Site: React.FC<SiteProps> = ({ siteData }) => {
+const Site: React.FC<SiteProps> = ({ siteData, path }) => {
   return (
         <DynamicMap
           locations={siteData.map(site => ({
@@ -23,6 +24,7 @@ const Site: React.FC<SiteProps> = ({ siteData }) => {
           zoom={10}
           initialMapType="site"
           scrollWheelZoom={true}
+          path={path ? { base: path.base, rest: path.rest } : undefined}
         />
   );
 };

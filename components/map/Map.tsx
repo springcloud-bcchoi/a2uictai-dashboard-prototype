@@ -10,6 +10,7 @@ import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility
 import "leaflet-defaulticon-compatibility";
 import React, {useEffect, useState} from "react";
 import { Divider, Text } from "@chakra-ui/react";
+import Link from "next/link";
 
 
 interface MapProps {
@@ -18,10 +19,11 @@ interface MapProps {
   zoom: number;
   initialMapType: 'site' | 'robot';
   scrollWheelZoom: boolean;
+  path?:{base: string, rest?: string};
 }
 
 
-const Map: React.FC<MapProps> = ({locations, center, zoom, initialMapType}) => {
+const Map: React.FC<MapProps> = ({locations, center, zoom, initialMapType, path}) => {
   const [mapType, setMapType] = useState<'site' | 'robot'>(initialMapType);
   const url =
     mapType === 'site'
@@ -39,15 +41,45 @@ const Map: React.FC<MapProps> = ({locations, center, zoom, initialMapType}) => {
         url={url}
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors <a href="https://a2uictai-dashboard-prototype.vercel.app/">A2UICT</a>'
       />
-      {locations.map((location) => (
-        <Marker key={location.id} position={[location.latitude, location.longitude]} draggable={false}>
-          <Popup>
-            <Text fontSize='sm' fontWeight='bold'>{location.name}</Text>
-              <Divider/>
-            <Text >{location.addr}</Text>
-          </Popup>
-        </Marker>
-      ))}
+      {locations.map((location) => {
+        const popupContent = (
+          <>
+            <Text
+              css={{
+                fontSize: 'sm !important',
+                fontWeight: 'bold !important',
+                marginTop: '5px !important',
+                marginBottom: '5px !important'
+              }}
+            >
+              {location.name}
+            </Text>
+            <Divider />
+            <Text>{location.addr}</Text>
+          </>
+        );
+
+        return(
+          <Marker 
+            key={location.id} 
+            position={[location.latitude, location.longitude]} 
+            draggable={false}
+          >
+            <Popup>
+            {path ? (  // path가 있을 때는 Link로 감쌈
+                <Link
+                  href={`${path.base}/${location.name}${path.rest ? `/${path.rest}` : ''}`}
+                  className="rounded-md p-2 hover:bg-gray-100"
+                >
+                  {popupContent}
+                </Link>
+              ) : (  // path가 없을 때는 Link 없이 텍스트만 출력
+                popupContent
+              )}
+            </Popup>
+          </Marker>
+          )
+      })}
     </MapContainer>
   )
 }

@@ -16,6 +16,11 @@
   }
 }
 
+/* 지도 css 우선순위에서 하위로 */
+.leaflet-popup-content p, .leaflet-container a {
+  all: unset;
+}
+
 body {
   color: rgb(var(--foreground-rgb));
   background: linear-gradient(

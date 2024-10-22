@@ -1,7 +1,7 @@
 "use client"
 
 import { SiteData } from '@/app/service/site';
-import Site from '@/components/Site';
+import Site from '@/components/map/Site';
 import SkeletonLoader from '@/components/SkeletonLoader';
 import { lusitana } from '@/public/fonts/fonts';
 // import { getRouters } from '@/app/lib/actions';
@@ -11,7 +11,7 @@ import dynamic from 'next/dynamic';
 import { Suspense, useEffect, useState } from 'react';
 
 // Map 컴포넌트를 동적으로 임포트하고 SSR을 비활성화
-const DynamicMap = dynamic(() => import('@/components/Map'), {
+const DynamicMap = dynamic(() => import('@/components/map/Map'), {
     ssr: false
   });
 
@@ -25,6 +25,14 @@ export default function Page(){
       name: '삼척교동 수소충전생산기지',
       desc: ''
     }, 
+    // { 
+    //   id: 2,
+    //   latitude: 37.38012464999242,
+		//   longitude: 127.11634179211454,
+    //   address: '경기도 성남시 분당구 황새울로258번길 10-3',
+    //   name: '에이투유정보통신',
+    //   desc: ''
+    // }, 
   ];
 
     // const [routers, setRouters] = useState<Site[]>(siteData);
@@ -60,7 +68,7 @@ export default function Page(){
                 </h2>
                 <div className="bg-white-700 mx-auto my-5 w-[98%] h-[480px]">
                 <Suspense fallback={<SkeletonLoader width="100%" height="100%" />}>
-                    <Site siteData={siteData} />
+                    <Site siteData={siteData} path={{base:'/dashboard/h2charge', rest:'monitoring'}}/>
                 </Suspense>
                 </div>
                 </div>

@@ -1,9 +1,9 @@
-import { AgrData, ElicitData, RadarUsbData, RadarWifiData, Wss, AlertData } from '@/components/Wss';
+import { AgrData, ElicitData, RadarUsbData, RadarWifiData, Wss, AlertData, TubeTrailerData } from '@/components/Wss';
 
 interface GroupedData {
     [router_id: string]: {
       agrData: AgrData[];
-      mqttData: (ElicitData | RadarUsbData | RadarWifiData)[];
+      mqttData: (ElicitData | RadarUsbData | RadarWifiData | TubeTrailerData)[];
       alertData: AlertData[];
     };
 }
@@ -12,7 +12,7 @@ export const filterAgrDataBySourceIp = (agrDataDb: AgrData[]): AgrData[] => {
     return agrDataDb.filter(data => data.data.sourceIp);
 };
 
-export const groupDataByRouterId = (agrDataDb: AgrData[], mqttDataDb: (ElicitData | RadarUsbData | RadarWifiData)[], alertDataDb: AlertData[]): GroupedData => {
+export const groupDataByRouterId = (agrDataDb: AgrData[], mqttDataDb: (ElicitData | RadarUsbData | RadarWifiData | TubeTrailerData)[], alertDataDb: AlertData[]): GroupedData => {
     const groupedData: GroupedData = {};
   
     agrDataDb.forEach(data => {
