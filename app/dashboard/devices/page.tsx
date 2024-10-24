@@ -134,7 +134,7 @@ export default function Page(){
 
   useEffect(() => {
     setSearchTerm(''); 
-  }, []);
+  }, [setSearchTerm]);
 
   const filteredDevicesBySearch = searchTerm ? deviceDb.filter(device => {
     const routerId = device.router_id.includes(searchTerm);
