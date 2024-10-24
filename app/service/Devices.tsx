@@ -12,6 +12,7 @@ interface GroupedElicitData extends ElicitData {
 
 interface GroupedRadarWifiData extends RadarWifiData {
     router_id: string;
+    device_id: string;
 }
 
 export const deviceData = (mqttDataDb: (ElicitData | RadarUsbData | RadarWifiData | TubeTrailerData)[]):GroupedDeviceData[] => {
@@ -73,8 +74,13 @@ export const radarWifiData = (mqttDataDb: (ElicitData | RadarUsbData | RadarWifi
     .forEach(data => {
         if (data.topic_id.includes('ALIVE') || data.topic_id.includes('JOINCNF')) return;
     
-        const [router_id, uid] = data.topic_id.split('/');
-        groupedData.push({ ...data, router_id });
+        const [router_id, device_id] = data.topic_id.split('/');
+        // groupedData.push({ ...data, router_id, device_id });
+
+        if (device_id.includes('room3')) {
+            // RadarWifiData인 경우 device_id가 'room'을 포함하면 push
+            groupedData.push({ ...data, router_id, device_id });
+          }
       });
 
       return groupedData;
