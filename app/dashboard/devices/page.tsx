@@ -134,7 +134,7 @@ export default function Page(){
 
   useEffect(() => {
     setSearchTerm(''); 
-  }, [setSearchTerm]);
+  }, []);
 
   const filteredDevicesBySearch = searchTerm ? deviceDb.filter(device => {
     const routerId = device.router_id.includes(searchTerm);
@@ -168,7 +168,7 @@ export default function Page(){
             setSearchTerm('');
         }
     } 
-  }, [searchTerm, filteredDevicesBySearch.length]);
+  }, [searchTerm]);
 
   const parseTime = (timestamp: string) => {
     if (!timestamp) return 0; // timestamp가 없으면 0으로 처리
@@ -299,11 +299,11 @@ export default function Page(){
   //     </div>
   //   )
   // })
-  .map((radarWifiDb) => {
+  .map((radarWifiDb, index) => {
     const timestamp = devicesUpdateTime[radarWifiDb.router_id]?.timestamp;
 
     return(
-      <div className={`mb-4 ${styles.radarData}`} style={{border: "2px solid black"}}>
+      <div key={index} className={`mb-4 ${styles.radarData}`} style={{border: "2px solid black"}}>
         <div className='border-b-4 mb-4'>
           <span className='mr-16'>
             게이트웨이 MAC주소: {radarWifiDb.router_id}
