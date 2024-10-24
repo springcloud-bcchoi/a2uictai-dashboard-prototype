@@ -119,10 +119,11 @@ export default function Page(){
   };
   
   // 도어, 버튼, 레이더 데이터 추출
-  const deviceDb = deviceData(mqttDataDb);
+  // const deviceDb = deviceData(mqttDataDb);
   // const doorDb = doorData(mqttDataDb);
   // const buttonDb = buttonData(mqttDataDb);
   // const radarWifiDb = radarWifiData(mqttDataDb);
+  const deviceDb = radarWifiData(mqttDataDb);
   const devicesUpdateTime = useDeviceUpdate(latestMqttData);
   const routerID = [
     ...deviceDb.map(item => item.router_id),
@@ -131,17 +132,23 @@ export default function Page(){
     ...deviceDb.map(item => item.device_id),
   ];
 
+  useEffect(() => {
+    setSearchTerm(''); 
+  }, []);
+
   const filteredDevicesBySearch = searchTerm ? deviceDb.filter(device => {
-    if ('data' in device) {
-      if ('address' in device.data) {
-        // ElicitData 타입일 경우
-        return device.data.address.toLowerCase().includes(searchTerm.toLowerCase());
-      } else if ('uid' in device.data) {
-        // RadarWifiData 타입일 경우
-        return device.data.uid.toLowerCase().includes(searchTerm.toLowerCase());
-      }
-    }
-    return false;
+    const routerId = device.router_id.includes(searchTerm);
+    const deviceId = device.data.uid.toLowerCase().includes(searchTerm.toLowerCase());
+    return routerId || deviceId;
+    // if ('data' in device) {
+    //   if ('address' in device.data) {
+    //     // ElicitData 타입일 경우
+    //     return device.data.address.toLowerCase().includes(searchTerm.toLowerCase());
+    //   } else if ('uid' in device.data) {
+    //     // RadarWifiData 타입일 경우
+    //     return device.data.uid.toLowerCase().includes(searchTerm.toLowerCase());
+    //   }
+    // }
   }) : [];
   
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -193,7 +200,7 @@ export default function Page(){
           </h1>
           <NotSearched isOpen={isOpenSearchError} onClose={closeSearchError} errorMessage={errorMessage} />
           <div className='mb-4'>
-            <SearchBar width='600px' placeholder="장치를 검색하세요." me="10px"  border='3px solid black'/>
+            <SearchBar maxWidth='600px' placeholder="장치를 검색하세요." me="10px"  border='3px solid black'/>
           </div>
 
 
@@ -255,43 +262,77 @@ export default function Page(){
 
 //   return parseTime(timestampB) - parseTime(timestampA); // 최신 시간부터 정렬
 // })
-  .map((device) => {
-    const timestamp = devicesUpdateTime[device.device_id]?.timestamp;
+  // .map((device) => {
+  //   const timestamp = devicesUpdateTime[device.device_id]?.timestamp;
 
-    return (
-      <div className='mb-4' style={{ border: "2px solid black" }} key={device.device_id}>
+  //   return (
+  //     <div className='mb-4' style={{ border: "2px solid black" }} key={device.device_id}>
+  //       <div className='border-b-4 mb-4'>
+  //         <span className='mr-16'>
+  //           게이트웨이 MAC주소 : {device.router_id}
+  //         </span>
+  //         <span className='mr-16'>
+  //           장치 :&nbsp;
+  //           {('event_type' in device.data) 
+  //             ? (device.data.event_type === 'motion' ? `레이더_와이파이(${device.data.uid})` : null) 
+  //             : ('elementType' in device.data 
+  //               ? (device.data.elementType === '3' ? `도어(${device.data.address})` : device.data.elementType === '4' ? `버튼(${device.data.address})` : null) 
+  //               : null)}
+  //         </span>
+  //         <span>
+  //           일시 :&nbsp;
+  //           <span className={timestamp ? 'text-sm text-blue-500' : ''}>
+  //             {timestamp ? `device update at ${timestamp}` 
+  //               : ('date' in device.data 
+  //                 ? new Date(device.data.date).toISOString().slice(0, 19).replace('T', ' ')
+  //                 : null)}
+  //           </span>
+  //         </span>
+  //       </div>
+  //       <div>
+  //         {Object.entries(device.data).map(([key, value]) => (
+  //           <span key={key} className='mr-8'>
+  //             {key}: {value}
+  //           </span>
+  //         ))}
+  //       </div>
+  //     </div>
+  //   )
+  // })
+  .map((radarWifiDb) => {
+    const timestamp = devicesUpdateTime[radarWifiDb.router_id]?.timestamp;
+
+    return(
+      <div className={`mb-4 ${styles.radarData}`} style={{border: "2px solid black"}}>
         <div className='border-b-4 mb-4'>
           <span className='mr-16'>
-            게이트웨이 MAC주소 : {device.router_id}
+            게이트웨이 MAC주소: {radarWifiDb.router_id}
           </span>
           <span className='mr-16'>
-            장치 :&nbsp;
-            {('event_type' in device.data) 
-              ? (device.data.event_type === 'motion' ? `레이더_와이파이(${device.data.uid})` : null) 
-              : ('elementType' in device.data 
-                ? (device.data.elementType === '3' ? `도어(${device.data.address})` : device.data.elementType === '4' ? `버튼(${device.data.address})` : null) 
-                : null)}
+            장치 : {radarWifiDb.data.event_type==='motion'?'레이더_와이파이':null}({radarWifiDb.data.uid})
           </span>
           <span>
-            일시 :&nbsp;
-            <span className={timestamp ? 'text-sm text-blue-500' : ''}>
-              {timestamp ? `device update at ${timestamp}` 
-                : ('date' in device.data 
-                  ? new Date(device.data.date).toISOString().slice(0, 19).replace('T', ' ')
-                  : null)}
-            </span>
+            일시: {timestamp &&
+        <span
+            className={'text-sm text-blue-500'}>(device update at {timestamp})</span>}
           </span>
+
         </div>
         <div>
-          {Object.entries(device.data).map(([key, value]) => (
-            <span key={key} className='mr-8'>
-              {key}: {value}
-            </span>
-          ))}
+          <span className='mr-8'>Det: {radarWifiDb.data.presence}</span>
+          <span className='mr-8'>cnt: {radarWifiDb.data.detect_count}</span>
+          <span className='mr-8'>HR: {radarWifiDb.data.heart}</span>
+          <span className='mr-8'>BR: {radarWifiDb.data.breath}</span>
+          <span className='mr-8'>Dis: {radarWifiDb.data.range}</span>
+          <span className='mr-8'>fall: {radarWifiDb.data.fall}</span>
+          <span className='mr-8'>rssi: {radarWifiDb.data.radar_rssi}</span>
+          <span className='mr-8'>IP: {radarWifiDb.data.device_ip}</span>
+          <span className='mr-8'>MAC: {radarWifiDb.data.mac_address}</span>
         </div>
       </div>
     )
-  })}
+  })
+  }
       </main>
   );
 }

@@ -1,3 +1,10 @@
+@media (max-width: 768px) {
+  .radarData span {
+    display: block;
+    margin-bottom: 8px; /* 요소들 간에 간격 추가 */
+  }
+}
+
 .header {
     font-size: 24px;
     margin-bottom: 16px;
