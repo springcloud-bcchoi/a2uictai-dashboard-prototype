@@ -168,7 +168,7 @@ export default function Page(){
             setSearchTerm('');
         }
     } 
-  }, [searchTerm]);
+  }, [searchTerm, filteredDevicesBySearch.length]);
 
   const parseTime = (timestamp: string) => {
     if (!timestamp) return 0; // timestamp가 없으면 0으로 처리
