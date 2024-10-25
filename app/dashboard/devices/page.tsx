@@ -300,7 +300,7 @@ export default function Page(){
   //   )
   // })
   .map((radarWifiDb, index) => {
-    const timestamp = devicesUpdateTime[radarWifiDb.router_id]?.timestamp;
+    const timestamp = devicesUpdateTime[radarWifiDb.device_id]?.timestamp;
 
     return(
       <div key={index} className={`mb-4 ${styles.radarData}`} style={{border: "2px solid black"}}>
