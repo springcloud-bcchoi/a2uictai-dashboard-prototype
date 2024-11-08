@@ -14,9 +14,8 @@ import { lusitana } from '@/public/fonts/fonts';
 import dynamic from 'next/dynamic';
 // import { Router } from 'next/router';
 import { Suspense, useContext, useEffect, useRef, useState } from 'react';
-import styles from './page.module.css';
 import { AgrData, ElicitData, RadarUsbData, RadarWifiData, Wss, AlertData, TubeTrailerData } from '@/components/Wss';
-import { buttonData, deviceData, doorData, radarWifiData } from '@/app/service/Devices';
+import { buttonData, deviceData, doorData, GroupedDeviceData, GroupedElicitData, GroupedRadarWifiData, ModifyElicitData, radarWifiData } from '@/app/service/Devices';
 import OptionModal from '@/app/ui/devices/OptionModal';
 import { SearchProvider, useSearch } from '@/components/searchbar/SearchContext';
 import { useDisclosure } from '@chakra-ui/react';
@@ -29,25 +28,25 @@ const useDeviceUpdate = (latestMqttData: ElicitData | RadarUsbData | RadarWifiDa
   }>({});
   const timeouts = useRef<{ [key: string]: NodeJS.Timeout }>({});
 
-  const updateHighlight = (routerId: string, type: 'agr' | 'mqtt') => {
+  const updateHighlight = (topicId: string, type: 'agr' | 'mqtt') => {
     const timestamp = new Date().toLocaleTimeString();
 
-    if (timeouts.current[routerId]) clearTimeout(timeouts.current[routerId]);
+    if (timeouts.current[topicId]) clearTimeout(timeouts.current[topicId]);
 
     setHighlightedRouters(prev => ({
       ...prev,
-      [routerId]: { ...prev[routerId], [type]: true, timestamp, type }
+      [topicId]: { ...prev[topicId], [type]: true, timestamp, type }
     }));
 
     const timeout = setTimeout(() => {
       setHighlightedRouters(prev => ({
         ...prev,
-        [routerId]: { ...prev[routerId], [type]: false }
+        [topicId]: { ...prev[topicId], [type]: false }
       }));
-      delete timeouts.current[routerId];
+      delete timeouts.current[topicId];
     }, 100);
 
-    timeouts.current[routerId] = timeout;
+    timeouts.current[topicId] = timeout;
   };
 
   // useEffect(() => {
@@ -66,7 +65,7 @@ const useDeviceUpdate = (latestMqttData: ElicitData | RadarUsbData | RadarWifiDa
       //   device_id_number = device_id.split('=')[1];
       // }
 
-      updateHighlight(device_id, 'mqtt');
+      updateHighlight(latestMqttData.topic_id, 'mqtt');
     }
   }, [latestMqttData]);
 
@@ -120,10 +119,15 @@ export default function Page(){
   
   // 도어, 버튼, 레이더 데이터 추출
   // const deviceDb = deviceData(mqttDataDb);
-  // const doorDb = doorData(mqttDataDb);
-  // const buttonDb = buttonData(mqttDataDb);
-  // const radarWifiDb = radarWifiData(mqttDataDb);
-  const deviceDb = radarWifiData(mqttDataDb);
+  const doorDb = doorData(mqttDataDb);
+  const buttonDb = buttonData(mqttDataDb);
+  const radarWifiDb = radarWifiData(mqttDataDb);
+  useEffect(()=>{
+    console.log("radar: ",radarWifiDb)
+  },[radarWifiDb])
+  
+  const deviceDb = [...doorDb, ...buttonDb, ...radarWifiDb];
+
   const devicesUpdateTime = useDeviceUpdate(latestMqttData);
   const routerID = [
     ...deviceDb.map(item => item.router_id),
@@ -132,23 +136,89 @@ export default function Page(){
     ...deviceDb.map(item => item.device_id),
   ];
 
+  const RadarInterface = ({ radar }:{radar:GroupedRadarWifiData}) => {
+    const timestamp = devicesUpdateTime[`${radar.router_id}/${radar.device_id}`]?.timestamp;
+  
+    return (
+      <div className="mb-4 deviceData" style={{border: "2px solid black"}}>
+         <div className='border-b-4 mb-4'>
+          <span className='mr-16'>게이트웨이 MAC주소: {radar.router_id}</span>
+          <span className='mr-16'>장치: 레이더_와이파이({radar.data.uid})</span>
+          <span>
+            일시: {timestamp && <span className='text-sm text-blue-500'>(device update at {timestamp})</span>}
+          </span>
+        </div>
+        <div>
+          <span className='mr-8'>Det: {radar.data.presence}</span>
+          <span className='mr-8'>cnt: {radar.data.detect_count}</span>
+          <span className='mr-8'>HR: {radar.data.heart}</span>
+          <span className='mr-8'>BR: {radar.data.breath}</span>
+          <span className='mr-8'>Dis: {radar.data.range}</span>
+          <span className='mr-8'>fall: {radar.data.fall}</span>
+          <span className='mr-8'>rssi: {radar.data.radar_rssi}</span>
+          <span className='mr-8'>IP: {radar.data.device_ip}</span>
+          <span className='mr-8'>MAC: {radar.data.mac_address}</span>
+        </div>
+      </div>
+    );
+  };
+
+  const DoorInterface = ({ door }:{door:GroupedElicitData}) => {
+    const timestamp = devicesUpdateTime[door.device_id]?.timestamp;
+    
+    return (
+      <div className="mb-4 deviceData" style={{border: "2px solid black"}}>
+         <div className='border-b-4 mb-4'>
+          <span className='mr-16'>게이트웨이 MAC주소: {door.router_id}</span>
+          <span className='mr-16'>장치: 도어({door.data.address})</span>
+          <span>일시: {new Date(door.data.date).toISOString().slice(0, 19).replace('T', ' ')}</span>
+        </div>
+        <div>
+          <span className='mr-8'>event: {door.data.event}</span>
+          <span className='mr-8'>battery: {door.data.battery}</span>
+          <span className='mr-8'>rssi: {door.data.rssi}</span>
+        </div>
+      </div>
+    );
+  };
+  
+  const ButtonInterface = ({ button }:{button:GroupedElicitData}) => {
+    const timestamp = devicesUpdateTime[button.device_id]?.timestamp;
+    
+    return (
+      <div className="mb-4 deviceData" style={{border: "2px solid black"}}>
+         <div className='border-b-4 mb-4'>
+          <span className='mr-16'>게이트웨이 MAC주소: {button.router_id}</span>
+          <span className='mr-16'>장치: 버튼({button.data.address})</span>
+          <span>일시: {new Date(button.data.date).toISOString().slice(0, 19).replace('T', ' ')}</span>
+        </div>
+        <div>
+          <span className='mr-8'>event: {button.data.event}</span>
+          <span className='mr-8'>battery: {button.data.battery}</span>
+          <span className='mr-8'>rssi: {button.data.rssi}</span>
+        </div>
+      </div>
+    );
+  };
+
   useEffect(() => {
     setSearchTerm(''); 
   }, []);
 
   const filteredDevicesBySearch = searchTerm ? deviceDb.filter(device => {
     const routerId = device.router_id.includes(searchTerm);
-    const deviceId = device.data.uid.toLowerCase().includes(searchTerm.toLowerCase());
+    let deviceId = false;
+    // return routerId || deviceId;
+    if ('data' in device) {
+      if ('address' in device.data) {
+        // ElicitData 타입일 경우
+        deviceId = device.data.address.toLowerCase().includes(searchTerm.toLowerCase());
+      } else if ('uid' in device.data) {
+        // RadarWifiData 타입일 경우
+        deviceId = device.data.uid.toLowerCase().includes(searchTerm.toLowerCase());
+      }
+    }
     return routerId || deviceId;
-    // if ('data' in device) {
-    //   if ('address' in device.data) {
-    //     // ElicitData 타입일 경우
-    //     return device.data.address.toLowerCase().includes(searchTerm.toLowerCase());
-    //   } else if ('uid' in device.data) {
-    //     // RadarWifiData 타입일 경우
-    //     return device.data.uid.toLowerCase().includes(searchTerm.toLowerCase());
-    //   }
-    // }
   }) : [];
   
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -299,38 +369,29 @@ export default function Page(){
   //     </div>
   //   )
   // })
-  .map((radarWifiDb, index) => {
-    const timestamp = devicesUpdateTime[radarWifiDb.device_id]?.timestamp;
+  .map((device, index) => {
+    const isModifyElicitData = (data: ModifyElicitData['data'] | RadarWifiData['data']): data is ModifyElicitData['data'] => {
+      return 'date' in data && 'rssi' in data && 'address' in data;
+  };
 
-    return(
-      <div key={index} className={`mb-4 ${styles.radarData}`} style={{border: "2px solid black"}}>
-        <div className='border-b-4 mb-4'>
-          <span className='mr-16'>
-            게이트웨이 MAC주소: {radarWifiDb.router_id}
-          </span>
-          <span className='mr-16'>
-            장치 : {radarWifiDb.data.event_type==='motion'?'레이더_와이파이':null}({radarWifiDb.data.uid})
-          </span>
-          <span>
-            일시: {timestamp &&
-        <span
-            className={'text-sm text-blue-500'}>(device update at {timestamp})</span>}
-          </span>
+  if (isModifyElicitData(device.data)) {
+      switch (device.data.event_type) {
+          case '3':
+              return (true && <DoorInterface door={device as GroupedDeviceData & { data: ModifyElicitData['data'] }} key={index} />);
+          case '4':
+              return <ButtonInterface button={device as GroupedDeviceData & { data: ModifyElicitData['data'] }} key={index} />;
+          default:
+              return null;
+      }
+  } else {
+      // RadarWifiData인지 다시 검사
+      if (device.data.event_type === 'motion') {
+        
 
-        </div>
-        <div>
-          <span className='mr-8'>Det: {radarWifiDb.data.presence}</span>
-          <span className='mr-8'>cnt: {radarWifiDb.data.detect_count}</span>
-          <span className='mr-8'>HR: {radarWifiDb.data.heart}</span>
-          <span className='mr-8'>BR: {radarWifiDb.data.breath}</span>
-          <span className='mr-8'>Dis: {radarWifiDb.data.range}</span>
-          <span className='mr-8'>fall: {radarWifiDb.data.fall}</span>
-          <span className='mr-8'>rssi: {radarWifiDb.data.radar_rssi}</span>
-          <span className='mr-8'>IP: {radarWifiDb.data.device_ip}</span>
-          <span className='mr-8'>MAC: {radarWifiDb.data.mac_address}</span>
-        </div>
-      </div>
-    )
+          return <RadarInterface radar={device as GroupedDeviceData & { data: RadarWifiData['data'] }} key={index} />;
+      }
+      return null;
+  }
   })
   }
       </main>
