@@ -1,16 +1,23 @@
+@media (max-width: 768px) {
+    .deviceData span {
+        display: block;
+        /* margin-bottom: 8px;  */
+    }
+}
+
 .header {
     font-size: 24px;
     margin-bottom: 16px;
-  }
-  
-  .flexSection {
+}
+
+.flexSection {
     position: relative;
     display: -ms-flexbox;
     display: flex;
     gap: 32px;
-  }
-  
-  .optionButton {
+}
+
+.optionButton {
     position: relative;
     background-color: #f0f0f0;
     padding: 10px;
@@ -19,14 +26,14 @@
     cursor: pointer;
     display: flex;
     align-items: center;
-  }
-  
-  .modalContainer {
+}
+
+.modalContainer {
     position: absolute;
     top: 50px;
     right: inherit;
     bottom: inherit;
-    /* left: 0; */
+    left: 0;
     border: solid;
     border-radius: 16px;
     background-color: white;
@@ -34,32 +41,32 @@
     border-radius: 8px;
     justify-content: center;
     z-index: 1400;
-  }
-  
-  .modalContent {
+}
+
+.modalContent {
     display: flex;
     justify-content: center;
     margin-bottom: 16px;
-  }
-  
-  .leftOptions,
-  .rightOptions {
+}
+
+.leftOptions,
+.rightOptions {
     display: inline-block;
     margin-right: 20px;
-  }
-  
-  .buttonContainer {
+}
+
+.buttonContainer {
     display: flex;
-    justify-content: flex-end; /* 버튼을 오른쪽으로 정렬 */
-    margin-top: 10px; /* 필요에 따라 여백 추가 */
-  }
-  
-  .applyButton {
+    justify-content: flex-end; 
+    margin-top: 10px; 
+}
+
+.applyButton {
     background-color: #1a75ff;
     color: white;
     padding: 10px;
     border: none;
     border-radius: 4px;
     cursor: pointer;
-  }
-  
+}
+    

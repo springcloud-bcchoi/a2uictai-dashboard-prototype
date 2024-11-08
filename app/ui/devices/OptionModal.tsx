@@ -1,5 +1,3 @@
-import styles from './OptionModal.module.css';
-
 interface OptionModalProps {
     modalState: {
         isOpen: boolean;
@@ -30,17 +28,17 @@ const OptionModal: React.FC<OptionModalProps> = ({
     return (
     <div>
         <button
-            className={`${styles.optionButton}`}
+            className="optionButton"
             onClick={toggleModal}
         >
             <span>{modalState.leftOption}·{modalState.rightOption}</span>
             <span>▼</span>
         </button>
-        { modalState.isOpen && <div className={`${styles.modalContainer}`}>
-        <div className={`${styles.modalContent}`}>
+        { modalState.isOpen && <div className="modalContainer">
+        <div className="modalContent">
             {/* 왼쪽 옵션 */}
             {leftOptions && (
-            <div className={styles.leftOptions}>
+            <div className="leftOptions">
                 <ul>
                     {leftOptions.map((option, index) => (
                     <li key={index} onClick={() => setSelectedLeftOption(option)}>
@@ -56,7 +54,7 @@ const OptionModal: React.FC<OptionModalProps> = ({
 
             {/* 오른쪽 옵션 */}
             {rightOptions && (
-            <div className={styles.rightOptions}>
+            <div className="rightOptions">
                 <ul>
                 {rightOptions.map((option, index) => (
                     <li key={index} onClick={() => setSelectedRightOption(option??'전체')}>
@@ -67,8 +65,8 @@ const OptionModal: React.FC<OptionModalProps> = ({
             </div>
             )}
         </div>
-        <div className={`${styles.buttonContainer}`}>
-        <button className={`${styles.applyButton}`} onClick={onApply}>
+        <div className="buttonContainer">
+        <button className="applyButton" onClick={onApply}>
             적용
         </button>
         </div>
