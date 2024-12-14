@@ -229,61 +229,87 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
   const [latestAgrData, setLatestAgrData] = useState<AgrData | null>(null);
   const [latestMqttData, setLatestMqttData] = useState<ElicitData | RadarUsbData | RadarWifiData | TubeTrailerData| null>(null);
 
+
   useEffect(() => {
     const wsUrl = 'wss://iwxu7qs5h3.execute-api.ap-northeast-2.amazonaws.com/dev';
-    const ws = new WebSocket(wsUrl);
-    setWebSocket(ws);
+    let ws: WebSocket | null = null;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 5;
+    const reconnectDelay = 3000; // 재연결 대기 시간 (3초)
 
-    ws.onopen = () => {
-      console.log('Connected to WebSocket');
-      setIsConnected(true);
+    const connectWebSocket = () => {
+        ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+            console.log('Connected to WebSocket');
+            setIsConnected(true);
+            reconnectAttempts = 0; // 재연결 횟수 초기화
+        };
+
+        ws.onmessage = (event) => {
+            const parsedData = JSON.parse(event.data);
+
+            if (parsedData.agr_data_db) {
+                setAgrDataDb(parsedData.agr_data_db);
+            }
+
+            if (parsedData.mqtt_data_db) {
+                setMqttDataDb(parsedData.mqtt_data_db);
+            }
+
+            if (parsedData.agr_data) {
+                setAgrData(parsedData.agr_data);
+                setAgrDataDb(prev => updateAgrDataDb(prev, parsedData.agr_data));
+                setLatestAgrData(parsedData.agr_data);
+            }
+
+            if (parsedData.mqtt_data) {
+                setMqttData(parsedData.mqtt_data);
+                setMqttDataDb(prev => updateMqttDataDb(prev, parsedData.mqtt_data));
+                setLatestMqttData(parsedData.mqtt_data);
+            }
+
+            if (parsedData.alert_data) {
+                setAlertData(parsedData.alert_data);
+                setAlertDataDb(prev => updateAlertDataDb(prev, parsedData.alert_data));
+            }
+
+            if (parsedData.alert_data_db) {
+                setAlertDataDb(parsedData.alert_data_db);
+            }
+        };
+
+        ws.onclose = () => {
+            console.log('Disconnected from WebSocket');
+
+            if (reconnectAttempts < maxReconnectAttempts) {
+                reconnectAttempts++;
+                console.log(
+                    `재연결 시도 ${reconnectAttempts}/${maxReconnectAttempts}`
+                );
+
+                setTimeout(() => {
+                    connectWebSocket(); // 재연결 시도
+                }, reconnectDelay);
+            } else {
+                console.log('최대 재연결 시도 횟수를 초과했습니다.');
+            }
+        };
+
+        ws.onerror = (error) => {
+            console.error('WebSocket Error:', error);
+            ws!.close(); // 에러 발생 시 소켓을 닫고 재연결 시도
+        };
     };
 
-    ws.onmessage = (event) => {
-      const parsedData = JSON.parse(event.data);
-
-      if (parsedData.agr_data_db) {
-        setAgrDataDb(parsedData.agr_data_db);
-      }
-
-      if (parsedData.mqtt_data_db) {
-        setMqttDataDb(parsedData.mqtt_data_db);
-      }
-
-      if (parsedData.agr_data) {
-        setAgrData(parsedData.agr_data);
-        setAgrDataDb(prev => updateAgrDataDb(prev, parsedData.agr_data));
-        setLatestAgrData(parsedData.agr_data);
-
-      }
-
-      if (parsedData.mqtt_data) {
-        setMqttData(parsedData.mqtt_data);
-        setMqttDataDb(prev => updateMqttDataDb(prev, parsedData.mqtt_data));
-        setLatestMqttData(parsedData.mqtt_data);
-      }
-      if (parsedData.alert_data) {
-        setAlertData(parsedData.alert_data);
-        setAlertDataDb(prev => updateAlertDataDb(prev, parsedData.alert_data));
-      }
-
-      if (parsedData.alert_data_db) {
-        setAlertDataDb(parsedData.alert_data_db);
-      }
-    };
-
-    ws.onclose = () => {
-      console.log('Disconnected from WebSocket');
-      setIsConnected(false);
-      setWebSocket(null);
-    };
+    connectWebSocket(); // WebSocket 연결 시도
 
     return () => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.close();
-      }
+        if (ws) {
+            ws.close(); // 컴포넌트 언마운트 시 WebSocket 연결 해제
+        }
     };
-  }, []);
+}, []);
 
   return (
     <Wss.Provider
