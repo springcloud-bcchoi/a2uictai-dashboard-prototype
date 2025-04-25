@@ -67,7 +67,7 @@ const OptionModal: React.FC<OptionModalProps> = ({
         </div>
         <div className="buttonContainer">
         <button className="applyButton" onClick={onApply}>
-            적용
+            닫기
         </button>
         </div>
         </div>}

@@ -1,4 +1,4 @@
-import { ElicitData, RadarUsbData, RadarWifiData, TubeTrailerData } from "@/components/Wss";
+import { ElicitData, RadarUsbData, RadarWifiData, TubeTrailerData, HydrogenProductionStationData, RadarWifiDataFCV, RadarWifiDataFV } from "@/components/Wss";
 
 export interface ModifyElicitData {
     topic_id: string;
@@ -23,9 +23,40 @@ export interface GroupedElicitData extends ModifyElicitData {
     device_id: string;
 }
 
-export interface GroupedRadarWifiData extends RadarWifiData {
+// export interface GroupedRadarWifiData extends RadarWifiData {
+//     router_id: string;
+//     device_id: string;
+// }
+// export type GroupedRadarWifiData = RadarWifiData & {
+//   router_id: string;
+//   device_id: string;
+//   data: (RadarWifiDataFCV["data"] & { radar_type: 'FCV' }) | (RadarWifiDataFV["data"] & { radar_type: 'FV' });
+// };
+export interface UnifiedRadarData {
+  router_id: string;
+  device_id: string;
+  data: {
+    Det: string;
+    HR: string;
+    BR: string;
+    spo2: string;
+    fall: string;
+    rssi: string;
+    IP: string;
+    MAC: string;
+    radar_type: 'FCV' | 'FV';
+  }
+}
+
+
+export interface GroupedHydrogenProductionStationData extends HydrogenProductionStationData {
     router_id: string;
     device_id: string;
+}
+
+export interface GroupedTubeTrailerData extends TubeTrailerData {
+  router_id: string;
+  device_id: string;
 }
 
 export const deviceData = (mqttDataDb: (ElicitData | RadarUsbData | RadarWifiData | TubeTrailerData)[]):GroupedDeviceData[] => {
@@ -64,7 +95,7 @@ export const deviceData = (mqttDataDb: (ElicitData | RadarUsbData | RadarWifiDat
       return groupedData;
 }
 
-export const doorData = (mqttDataDb: (ElicitData | RadarUsbData | RadarWifiData | TubeTrailerData)[]):GroupedElicitData[] => {
+export const doorData = (mqttDataDb: any[]):GroupedElicitData[] => {
     const groupedData:GroupedElicitData[] = [];
     
     mqttDataDb.filter((data): data is ElicitData => 'address' in data.data && data.data.address !== undefined && data.data.address.includes('DOOR'))
@@ -85,7 +116,7 @@ export const doorData = (mqttDataDb: (ElicitData | RadarUsbData | RadarWifiData 
       return groupedData;
 }
 
-export const buttonData = (mqttDataDb: (ElicitData | RadarUsbData | RadarWifiData | TubeTrailerData)[]):GroupedElicitData[] => {
+export const buttonData = (mqttDataDb: any[]):GroupedElicitData[] => {
     const groupedData:GroupedElicitData[] = [];
     mqttDataDb.filter((data): data is ElicitData => 'address' in data.data && data.data.address !== undefined && data.data.address.includes('BTN'))
     .forEach(data => {
@@ -105,10 +136,114 @@ export const buttonData = (mqttDataDb: (ElicitData | RadarUsbData | RadarWifiDat
       return groupedData;
 }
 
-export const radarWifiData = (mqttDataDb: (ElicitData | RadarUsbData | RadarWifiData | TubeTrailerData)[]):GroupedRadarWifiData[] => {
-    const groupedData:GroupedRadarWifiData[] = [];
+// export const radarWifiData = (mqttDataDb: any[]):GroupedRadarWifiData[] => {
+  
+//     const groupedData:GroupedRadarWifiData[] = [];
     
-    mqttDataDb.filter((data): data is RadarWifiData => 'heart' in data.data)
+//     mqttDataDb.filter((data): data is RadarWifiData => 'heart' in data.data)
+//     .forEach(data => {
+//         if (data.topic_id.includes('ALIVE') || data.topic_id.includes('JOINCNF')) return;
+    
+//         const [router_id, device_id] = data.topic_id.split('/');
+//         // if (device_id.includes('room3') || device_id.includes('Test')) {
+//         //     // RadarWifiData인 경우 device_id가 'room'을 포함하면 push
+//         //   }
+//           groupedData.push({ ...data, router_id, device_id });
+//       });
+
+//       return groupedData;
+// }
+// export const radarWifiData = (mqttDataDb: any[]): GroupedRadarWifiData[] => {
+//   const groupedData: GroupedRadarWifiData[] = [];
+
+//   mqttDataDb
+//     .filter((data): data is RadarWifiData => {
+//       const d = data.data;
+//       return d && ('presence' in d || 'state' in d);
+//     })
+//     .forEach(data => {
+//       if (data.topic_id.includes('ALIVE') || data.topic_id.includes('JOINCNF')) return;
+
+//       const [router_id, device_id] = data.topic_id.split('/');
+
+//       // radar_type 추가
+//       if ('presence' in data.data) {
+//         groupedData.push({
+//           ...data,
+//           data: { ...data.data, radar_type: 'FCV' },
+//           router_id,
+//           device_id
+//         });
+//       } else if ('state' in data.data) {
+//         groupedData.push({
+//           ...data,
+//           data: { ...data.data, radar_type: 'FV' },
+//           router_id,
+//           device_id
+//         });
+//       }
+//     });
+
+//   return groupedData;
+// };
+export const radarWifiData = (mqttDataDb: any[]): UnifiedRadarData[] => {
+  const unifiedData: UnifiedRadarData[] = [];
+
+  mqttDataDb
+    .filter((data): data is RadarWifiData => {
+      const d = data.data;
+      return d && ('presence' in d || 'state' in d);
+    })
+    .forEach(data => {
+      if (data.topic_id.includes('ALIVE') || data.topic_id.includes('JOINCNF')) return;
+
+      const [router_id, device_id] = data.topic_id.split('/');
+
+      if ('presence' in data.data) {
+        // FCV 타입
+        unifiedData.push({
+          data: {
+            Det: data.data.presence,
+            HR: data.data.heart,
+            BR: data.data.breath,
+            spo2: '', // 없음
+            fall: data.data.fall,
+            rssi: data.data.radar_rssi,
+            IP: data.data.device_ip,
+            MAC: data.data.mac_address,
+            radar_type: 'FCV'
+          },
+          router_id,
+          device_id
+        });
+      } else if ('state' in data.data) {
+        // FV 타입
+        unifiedData.push({
+          data: {
+            Det: data.data.state,
+            HR: data.data.heart,
+            BR: data.data.breath,
+            spo2: data.data.sp02,
+            fall: data.data.drop,
+            rssi: data.data.radar_rssi,
+            IP: '', // 없음
+            MAC: '', // 없음
+            radar_type: 'FV'
+          },
+          router_id,
+          device_id
+        });
+      }
+    });
+
+  return unifiedData;
+};
+
+
+export const hydrogenProductionStationData = (mqttDataDb: any[]):GroupedHydrogenProductionStationData[] => {
+    const groupedData:GroupedHydrogenProductionStationData[] = [];
+    
+    mqttDataDb.filter((data): data is HydrogenProductionStationData => 'guid' in data.data)
     .forEach(data => {
         if (data.topic_id.includes('ALIVE') || data.topic_id.includes('JOINCNF')) return;
     
@@ -120,4 +255,48 @@ export const radarWifiData = (mqttDataDb: (ElicitData | RadarUsbData | RadarWifi
       });
 
       return groupedData;
+}
+
+export const tubeTrailerData = (mqttDataDb: any[]):GroupedTubeTrailerData[] => {
+  const groupedData:GroupedTubeTrailerData[] = [];
+  
+  mqttDataDb.filter((data): data is TubeTrailerData => 'sensor_node5' in data.data)
+  .forEach(data => {
+      if (data.topic_id.includes('ALIVE') || data.topic_id.includes('JOINCNF')) return;
+      
+      const [router_id, device_id] = data.topic_id.split('/');
+      
+      if (router_id === 'unknown' || !/^[A-Za-z0-9]{4}$/.test(router_id)) return null;
+      groupedData.push({ ...data, router_id, device_id });
+  });
+
+  const topicMap: Record<string, [string,string]> = {};
+  groupedData.forEach(item => {
+      const data = item.data;
+      const topicParts = item.topic_id.split("/"); 
+      const key = topicParts[0];  
+      const newValue = topicParts[1]; 
+
+      // 기존 키가 이미 존재할 경우, timetbl 값을 비교하여 최신 데이터 반영
+      if (topicMap[key]) {
+          const existingTime = topicMap[key][1] ? new Date(topicMap[key][1]).getTime() : 0;
+          const newTime = data?.timetbl ? new Date(data.timetbl).getTime() : 0;
+
+          // 기존 값의 timetbl 값이 더 이전 것이면 새로운 데이터로 갱신
+          if (newTime > existingTime) {
+              topicMap[key] = [newValue, data.timetbl];
+          }
+      } else {
+          // 키가 없으면 바로 추가
+          topicMap[key] = [newValue, data.timetbl];
+      }
+  });
+
+  // cuid가 동일한 데이터 중 timetbl가 가장 최신의 것만 나오도록 필터
+  const filteredGroupedData = groupedData.filter(item => {
+    const topicParts = item.topic_id.split("/");
+    return topicMap[topicParts[0]] && topicMap[topicParts[0]][0] === topicParts[1];
+  })
+
+  return filteredGroupedData;
 }

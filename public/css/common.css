@@ -17,6 +17,10 @@
     gap: 32px;
 }
 
+.flexSection .optionContainer {
+    position: relative;
+}
+
 .optionButton {
     position: relative;
     background-color: #f0f0f0;
@@ -48,11 +52,25 @@
     justify-content: center;
     margin-bottom: 16px;
 }
+.modalContent ul{
+    display: flex; 
+    flex-direction: column;
+    gap: 10px;
+}
 
 .leftOptions,
 .rightOptions {
     display: inline-block;
+}
+.leftOptions {
     margin-right: 20px;
+}
+
+.leftOptions ul li {
+    white-space: nowrap;
+}
+.rightOptions ul li {
+    white-space: nowrap;
 }
 
 .buttonContainer {

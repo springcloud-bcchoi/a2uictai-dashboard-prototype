@@ -97,42 +97,70 @@ export interface RadarUsbData {
   };
 }
 
-export interface RadarWifiData {
+export interface RadarWifiDataFCV {
+  topic_id:string; // # 장치고유ID
+  data:{
+    presence:string; // # 감지 여부
+    detect_count:string; // # 부팅후 감지된 횟수
+    heart:string // # Heart Rate
+    breath:string; // # Breathing Rate
+    range:string; // # 감지 거리
+    fall:string; // # 낙상 여부
+    radar_rssi:string; //# 장치 rssi 감도수
+    event_type:string; // # motion type
+    mac_address:string; // # 장치의 mac address
+    device_ip:string;  //# wifi에 연결되 ip 주소
+    uid:string; // # 장치이름 
+  }
+}
+export interface RadarWifiDataFV {
   topic_id:string, // # 장치고유ID
   data:{
-    presence:string, // # 감지 여부
-    detect_count:string, // # 부팅후 감지된 횟수
+    state:string, // # 감지 여부
     heart:string // # Heart Rate
+    heart_detection:string // # 심박 측정 여부
     breath:string, // # Breathing Rate
-    range:string, // # 감지 거리
-    fall:string, // # 낙상 여부
+    sp02:string, // # Breathing Rate
+    drop:string, // # 낙상 여부
     radar_rssi:string, //# 장치 rssi 감도수
-    event_type:string, // # motion type
-    mac_address:string, // # 장치의 mac address
-    device_ip:string,  //# wifi에 연결되 ip 주소
-    uid:string, // # 장치이름 
+    alive_count:string, // # 장치 연결 상태
+  }
+}
+export type RadarWifiData = RadarWifiDataFCV | RadarWifiDataFV;
+
+export interface TubeTrailerData {
+  topic_id:string; // # 장치고유ID
+  data:{
+    cuid:string; 
+    tuid:string; 
+    lon:string; 
+    lat:string; 
+    distance:string; 
+    carState:string; 
+    sensor_node1:string; 
+    sensor_node2:string; 
+    sensor_node3:string; 
+    sensor_node4:string; 
+    sensor_node5:string; 
+    addon_node1:string;  
+    addon_node2:string;  
+    addon_node3:string; 
+    last_update_time:string; 
+    timetbl:string;  
   }
 }
 
-export interface TubeTrailerData {
-  topic_id:string, // # 장치고유ID
+export interface HydrogenProductionStationData {
+  topic_id:string; // # 장치고유ID
   data:{
-    cuid:string, 
-    tuid:string 
-    lon:string, 
-    lat:string, 
-    distance:string, 
-    carState:string, 
-    sensor_node1:string, 
-    sensor_node2:string, 
-    sensor_node3:string, 
-    sensor_node4:string, 
-    sensor_node5:string, 
-    addon_node1:string,  
-    addon_node2:string,  
-    addon_node3:string, 
-    last_update_time:string, 
-    timetbl:string,  
+    guid:string; 
+    dinp:string; 
+    barr:string; 
+    ainp:string; 
+    berr:string;
+    gdet:string; 
+    fdet:string; 
+    last_update_time:string;
   }
 }
 
@@ -140,9 +168,9 @@ interface WebSocketContextValue {
   webSocket: WebSocket | null;
   isConnected: boolean;
   agrData: AgrData | null;
-  mqttData: ElicitData | RadarUsbData | RadarWifiData | TubeTrailerData | null;
+  mqttData: ElicitData | RadarUsbData | RadarWifiData | TubeTrailerData | HydrogenProductionStationData | null;
   agrDataDb: AgrData[];
-  mqttDataDb: (ElicitData | RadarUsbData | RadarWifiData | TubeTrailerData)[];
+  mqttDataDb: (ElicitData | RadarUsbData | RadarWifiData | TubeTrailerData | HydrogenProductionStationData)[];
   notifyDataDb: NotifyData[];
   alertDataDb: AlertData[];
   notifyData: NotifyData | null;
@@ -151,8 +179,9 @@ interface WebSocketContextValue {
   radarUsbData: RadarUsbData[];
   radarWifiData: RadarWifiData[];
   tubeTrailerData: TubeTrailerData[];
+  HydrogenProductionStationData: HydrogenProductionStationData[];
   latestAgrData: AgrData | null;
-  latestMqttData: ElicitData | RadarUsbData | RadarWifiData | TubeTrailerData | null;
+  latestMqttData: ElicitData | RadarUsbData | RadarWifiData | TubeTrailerData | HydrogenProductionStationData | null;
 }
 
 export const Wss = createContext<WebSocketContextValue>({
@@ -170,6 +199,7 @@ export const Wss = createContext<WebSocketContextValue>({
   radarUsbData: [],
   radarWifiData: [],
   tubeTrailerData: [],
+  HydrogenProductionStationData: [],
   latestAgrData: null,
   latestMqttData: null,
 });
@@ -189,7 +219,10 @@ const updateAgrDataDb = (prevDb: AgrData[], newData: AgrData): AgrData[] => {
   return db;
 };
 
-const updateMqttDataDb = (prevDb: (ElicitData | RadarUsbData | RadarWifiData | TubeTrailerData)[], newData: ElicitData | RadarUsbData | RadarWifiData | TubeTrailerData): (ElicitData | RadarUsbData | RadarWifiData | TubeTrailerData)[] => {
+const updateMqttDataDb = (
+  prevDb: (ElicitData | RadarUsbData | RadarWifiData | TubeTrailerData | HydrogenProductionStationData)[], 
+  newData: ElicitData | RadarUsbData | RadarWifiData | TubeTrailerData | HydrogenProductionStationData
+) : (ElicitData | RadarUsbData | RadarWifiData | TubeTrailerData | HydrogenProductionStationData)[] => {
   const db = [...prevDb];
   const existingIndex = db.findIndex(item => item.topic_id === newData.topic_id);
   if (existingIndex !== -1) {
@@ -215,9 +248,9 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
   const [webSocket, setWebSocket] = useState<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [agrData, setAgrData] = useState<AgrData | null>(null);
-  const [mqttData, setMqttData] = useState<ElicitData | RadarUsbData | RadarWifiData | TubeTrailerData | null>(null);
+  const [mqttData, setMqttData] = useState<ElicitData | RadarUsbData | RadarWifiData | TubeTrailerData | HydrogenProductionStationData | null>(null);
   const [agrDataDb, setAgrDataDb] = useState<AgrData[]>([]);
-  const [mqttDataDb, setMqttDataDb] = useState<(ElicitData | RadarUsbData | RadarWifiData | TubeTrailerData)[]>([]);
+  const [mqttDataDb, setMqttDataDb] = useState<(ElicitData | RadarUsbData | RadarWifiData | TubeTrailerData | HydrogenProductionStationData)[]>([]);
   const [notifyDataDb, setNotifyDataDb] = useState<NotifyData[]>([]);
   const [alertDataDb, setAlertDataDb] = useState<AlertData[]>([]);
   const [notifyData, setNotifyData] = useState<NotifyData | null>(null);
@@ -226,8 +259,9 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
   const [radarUsbData, setRadarUsbData] = useState<RadarUsbData[]>([]);
   const [radarWifiData, setRadarWifiData] = useState<RadarWifiData[]>([]);
   const [tubeTrailerData, setTubeTrailerData] = useState<TubeTrailerData[]>([]);
+  const [HydrogenProductionStationData, setHydrogenProductionStationData] = useState<HydrogenProductionStationData[]>([]);
   const [latestAgrData, setLatestAgrData] = useState<AgrData | null>(null);
-  const [latestMqttData, setLatestMqttData] = useState<ElicitData | RadarUsbData | RadarWifiData | TubeTrailerData| null>(null);
+  const [latestMqttData, setLatestMqttData] = useState<ElicitData | RadarUsbData | RadarWifiData | TubeTrailerData | HydrogenProductionStationData | null>(null);
 
 
   useEffect(() => {
@@ -328,6 +362,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
         radarUsbData,
         radarWifiData,
         tubeTrailerData,
+        HydrogenProductionStationData,
         latestAgrData,
         latestMqttData,
 

@@ -1,10 +1,12 @@
 "use client"
 
+import { useRouter } from 'next/navigation';
+
 import { SiteData } from '@/app/service/site';
 import Site from '@/components/map/Site';
 import Radio from '@/components/radio/RadioBox';
 import { SelectedProvider } from '@/components/radio/RadioContext';
-import WrappedRadio from '@/components/radio/WrappedRadio';
+// import WrappedRadio from '@/components/radio/WrappedRadio';
 // import { SearchBar } from '@/components/searchbar/SearchBar';
 import { SearchBar } from '@/components/searchbar/SearchBar';
 import SkeletonLoader from '@/components/SkeletonLoader';
@@ -14,14 +16,14 @@ import { lusitana } from '@/public/fonts/fonts';
 import dynamic from 'next/dynamic';
 // import { Router } from 'next/router';
 import { Suspense, useContext, useEffect, useRef, useState } from 'react';
-import { AgrData, ElicitData, RadarUsbData, RadarWifiData, Wss, AlertData, TubeTrailerData } from '@/components/Wss';
-import { buttonData, deviceData, doorData, GroupedDeviceData, GroupedElicitData, GroupedRadarWifiData, ModifyElicitData, radarWifiData } from '@/app/service/Devices';
+import { AgrData, ElicitData, RadarUsbData, RadarWifiData, Wss, AlertData, TubeTrailerData, HydrogenProductionStationData } from '@/components/Wss';
+import { buttonData, deviceData, doorData, GroupedDeviceData, GroupedElicitData, GroupedHydrogenProductionStationData, GroupedTubeTrailerData, hydrogenProductionStationData, ModifyElicitData, radarWifiData, tubeTrailerData } from '@/app/service/Devices';
 import OptionModal from '@/app/ui/devices/OptionModal';
 import { SearchProvider, useSearch } from '@/components/searchbar/SearchContext';
 import { useDisclosure } from '@chakra-ui/react';
 import NotSearched from '@/components/searchbar/NotSearched';
 
-const useDeviceUpdate = (latestMqttData: ElicitData | RadarUsbData | RadarWifiData | TubeTrailerData | null
+const useDeviceUpdate = (latestMqttData: ElicitData | RadarUsbData | RadarWifiData | TubeTrailerData | HydrogenProductionStationData | null
 ): { [key: string]: { mqtt: boolean; timestamp: string; type: string } } => {
   const [highlightedRouters, setHighlightedRouters] = useState<{
     [key: string]: { agr: boolean; mqtt: boolean; timestamp: string; type: string }
@@ -74,6 +76,10 @@ const useDeviceUpdate = (latestMqttData: ElicitData | RadarUsbData | RadarWifiDa
 
 export default function Page(){
   const { searchTerm, setSearchTerm } = useSearch();
+  // const router = useRouter();
+  // const query = new URLSearchParams(window.location.search);
+
+  // console.log("query: ",query);
 
   const deviceOptions = ['도어', '버튼', '레이더'];
   const optionsHeader = {
@@ -84,10 +90,15 @@ export default function Page(){
 
   const { isConnected, agrDataDb, mqttDataDb, latestAgrData, latestMqttData, alertDataDb } = useContext(Wss);
 
+  const [live, setLive] = useState<boolean>(false);
+  const handleRadioClick = (live:boolean) => {
+    setLive(!live);
+  };
+
   const [modalState, setModalState] = useState({
-    first: { isOpen: false, leftOption: '장소', rightOption: '전체'},//headerText: '장소·전체' },
-    second: { isOpen: false, leftOption: '게이트웨이', rightOption: '전체'},//headerText: '게이트웨이·전체' },
-    third: { isOpen: false, leftOption: '디바이스', rightOption: '전체'}//headerText: '디바이스·전체' },
+    first: { isOpen: false, leftOption: '장소', rightOption: '전체'},
+    second: { isOpen: false, leftOption: 'RouterId', rightOption: '전체'},
+    third: { isOpen: false, leftOption: '디바이스', rightOption: '전체'}
   });
   // const [selectedLeftOption, setSelectedLeftOption] = useState('');
   // const [selectedRightOption, setSelectedRightOption] = useState('');
@@ -117,21 +128,27 @@ export default function Page(){
     }));
   };
   
-  // 도어, 버튼, 레이더 데이터 추출
+  // 각 장비 데이터 추출
   // const deviceDb = deviceData(mqttDataDb);
   const doorDb = doorData(mqttDataDb);
   const buttonDb = buttonData(mqttDataDb);
   const radarWifiDb = radarWifiData(mqttDataDb);
-  useEffect(()=>{
-    // console.log("radar: ",radarWifiDb)
-  },[radarWifiDb])
+  const hydrogenProductionStationDb = hydrogenProductionStationData(mqttDataDb);
+  const tubeTrailerDb = tubeTrailerData(mqttDataDb);
+
   
-  const deviceDb = [...doorDb, ...buttonDb, ...radarWifiDb];
+  const deviceDb = [...doorDb, ...buttonDb, ...radarWifiDb, ...hydrogenProductionStationDb, ...tubeTrailerDb];
 
   const devicesUpdateTime = useDeviceUpdate(latestMqttData);
   const routerID = [
-    ...deviceDb.map(item => item.router_id),
+    ...deviceDb
+      .map(item => {
+        if (item.router_id === 'unknown' || !/^[A-Za-z0-9]{4}$/.test(item.router_id)) return null;
+        return item.router_id;
+      })
+      .filter((id): id is string => id !== null), // 여기서 null 제거 및 타입 단언
   ];
+  
   const deviceID = [
     ...deviceDb.map(item => item.device_id),
   ];
@@ -140,19 +157,36 @@ export default function Page(){
     setSearchTerm(''); 
   }, []);
 
-  const filteredDevicesBySearch = searchTerm ? deviceDb.filter(device => {
-    const routerId = device.router_id.includes(searchTerm);
-    let deviceId = false;
-    // return routerId || deviceId;
-    if ('data' in device) {
-      if ('address' in device.data) {
-        // ElicitData 타입일 경우
-        deviceId = device.data.address.toLowerCase().includes(searchTerm.toLowerCase());
-      } else if ('uid' in device.data) {
-        // RadarWifiData 타입일 경우
-        deviceId = device.data.uid.toLowerCase().includes(searchTerm.toLowerCase());
-      }
-    }
+  // 기기 필터
+  const filteredDevicesByOptions = deviceDb.filter((device) => {
+    // const firstMatch =
+    //   modalState.first.rightOption === '전체' || device.location === modalState.first.rightOption;
+    const secondMatch =
+      modalState.second.rightOption === '전체' || device.router_id.includes(modalState.second.rightOption);
+    // const thirdMatch =
+    //   modalState.third.rightOption === '전체' || device.deviceType === modalState.third.rightOption;
+  
+    return secondMatch //firstMatch &&  && thirdMatch;
+  });
+  const filteredDevicesBySearch = searchTerm ? 
+    (filteredDevicesByOptions.length > 0 ? filteredDevicesByOptions : deviceDb)
+    .filter(device => {
+    const routerId = device.router_id.toLowerCase().includes(searchTerm.toLowerCase());
+    const deviceId = device.device_id.toLowerCase().includes(searchTerm.toLowerCase());
+    // let deviceId = false;
+    // // return routerId || deviceId;
+    // if ('data' in device) {
+    //   if ('address' in device.data) {
+    //     // ElicitData 타입일 경우
+    //     deviceId = device.data.address.toLowerCase().includes(searchTerm.toLowerCase());
+    //   } else if ('uid' in device.data) {
+    //     // RadarWifiData 타입일 경우
+    //     deviceId = device.data.uid.toLowerCase().includes(searchTerm.toLowerCase());
+    //   } else if ('guid' in device.data) {
+    //     // RadarWifiData 타입일 경우
+    //     deviceId = device.data.guid.toLowerCase().includes(searchTerm.toLowerCase());
+    //   } 
+    // }
     return routerId || deviceId;
   }) : [];
   
@@ -163,7 +197,24 @@ export default function Page(){
     onClose: closeSearchError
   } = useDisclosure();
 
-  const displayDeviceDb = filteredDevicesBySearch.length > 0 ? filteredDevicesBySearch : deviceDb;
+  const displayDeviceDb = filteredDevicesBySearch.length > 0 ? 
+                            filteredDevicesBySearch 
+                            :  filteredDevicesByOptions.length > 0 ? 
+                            filteredDevicesByOptions
+                            : deviceDb;
+  // const displayDeviceDb = filteredDevicesBySearch.length > 0 ? filteredDevicesBySearch : deviceDb;
+  
+  // 헬퍼 함수들
+  const isRadar = (data:any) => 'radar_type' in data;
+  const isHydrogenStation = (data:any) => 'fdet' in data;
+  const isTubeTrailer = (data:any) => 'cuid' in data;
+
+  // 장치별 그룹핑
+  const groupedByType = {
+    레이더와이파이: displayDeviceDb.filter((d) => isRadar(d.data)),
+    수소충전생산기지: displayDeviceDb.filter((d) => isHydrogenStation(d.data)),
+    튜브트레일러: displayDeviceDb.filter((d) => isTubeTrailer(d.data)),
+  };
 
   useEffect(() => {
     if(searchTerm != '' ){
@@ -173,7 +224,7 @@ export default function Page(){
             setSearchTerm('');
         }
     } 
-  }, [searchTerm]);
+  }, [filteredDevicesBySearch]);
 
   const parseTime = (timestamp: string) => {
     if (!timestamp) return 0; // timestamp가 없으면 0으로 처리
@@ -199,18 +250,19 @@ export default function Page(){
   
 
   return (
-      <main>
-          <h1 className={`${lusitana.className} mb-4 text-xl md:text-2xl`}>
-              장치관리
-          </h1>
-          <NotSearched isOpen={isOpenSearchError} onClose={closeSearchError} errorMessage={errorMessage} />
-          <div className='mb-4'>
-            <SearchBar maxWidth='600px' placeholder="장치를 검색하세요." me="10px"  border='3px solid black'/>
-          </div>
+    <main>
+        <h1 className={`${lusitana.className} mb-4 text-xl md:text-2xl`}>
+            장치관리
+        </h1>
+        <NotSearched isOpen={isOpenSearchError} onClose={closeSearchError} errorMessage={errorMessage} />
+        <div className='mb-4' style={{display:'flex', flexDirection:"row", gap:"8px"}}>
+          <SearchBar maxWidth='600px' placeholder="장치를 검색하세요." me="10px"  border='3px solid black'/>
+        </div>
 
 
-          <div className='mb-4'>
-            {/* <section className={`${styles.flexSection}`}>
+        <div className='mb-4'>
+          <section className="flexSection">
+            {/* <div className="optionContainer">
               <OptionModal
                 modalState={modalState.first}
                 toggleModal={() => toggleModal('first')}
@@ -224,12 +276,13 @@ export default function Page(){
                 }
                 onApply={() => applyModal('first')}
               />
-
+            </div> */}
+            <div className="optionContainer">
               <OptionModal
                 modalState={modalState.second}
                 toggleModal={() => toggleModal('second')}
-                leftOptions={['게이트웨이']}
-                rightOptions={['전체', ...routerID]}
+                leftOptions={['RouterId']}
+                rightOptions={['전체', ...Array.from(new Set(routerID))]}
                 setSelectedLeftOption={(option) =>
                   setModalOptions('second', option, modalState.second.rightOption)
                 }
@@ -238,7 +291,8 @@ export default function Page(){
                 }
                 onApply={() => applyModal('second')}
               />
-
+            </div>
+            {/* <div className="optionContainer">
               <OptionModal
                 modalState={modalState.third}
                 toggleModal={() => toggleModal('third')}
@@ -252,50 +306,67 @@ export default function Page(){
                 }
                 onApply={() => applyModal('third')}
               />
-            </section> */}
+            </div> */}
+          </section>
+        </div>
+
+        {Object.entries(groupedByType).map(([type, devices]) => (
+  <section key={type} className="mb-10">
+    <h2 className="text-xl font-bold mb-4">{type}</h2>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {devices.map((device, index) => {
+        const timestamp = devicesUpdateTime[`${device.router_id}/${device.device_id}`]?.timestamp;
+        const data = device.data;
+
+        return (
+          <div key={index} className="p-4 border rounded-xl shadow bg-white">
+            <div className="mb-2 text-sm text-gray-700 flex flex-wrap gap-4">
+              <span><strong>TopicId:</strong> {device.router_id}/{device.device_id}</span>
+              {/* <span><strong>MAC:</strong> {device.router_id}</span>
+              <span><strong>ID:</strong> {device.device_id || data.guid || data.tuid}</span> */}
+              <span>
+                <strong>업데이트:</strong>{" "}
+                {timestamp ? (
+                  <span className="text-sm text-blue-500">{timestamp}</span>
+                ) : (
+                  <span className="text-sm">
+                    {typeof data === "object" && data !== null
+                      ? "last_update_time" in data
+                        ? (data as any).last_update_time
+                        : "timetbl" in data
+                        ? (data as any).timetbl
+                        : "-"
+                      : "-"}
+                  </span>
+                )}
+              </span>
+
+
+            </div>
+
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+              {Object.entries(data)
+              .map(([key, value]) => (
+                <div key={key} className="flex">
+                  <span className="font-medium w-28">{key}:</span>
+                  {["barr", "berr"].includes(key) ? (
+                    <div className="overflow-x-auto whitespace-nowrap font-mono text-gray-600">
+                      {value || '-'}
+                    </div>
+                  ) : (
+                    <span className="text-gray-600">{value || '-'}</span>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
+        );
+      })}
+    </div>
+  </section>
+))}
 
-          {displayDeviceDb
-            .map((device, index) => {
-              const timestamp = devicesUpdateTime[`${device.router_id}/${device.device_id}`]?.timestamp;
-              if(!timestamp) return;
+  </main>
+);
 
-              const isModifyElicitData = (data:any): data is ModifyElicitData['data'] => {
-                return 'date' in data && 'rssi' in data && 'address' in data;
-              };
-              const isGroupedRadarWifiData = (data:any): data is GroupedRadarWifiData['data'] => {
-                return 'heart' in data;
-              };
-              // const isGroupedTubeTrailerData = (data:any): data is GroupedTubeTrailerData['data'] => {
-              //   return 'cuid' in data;
-              // };
-
-  	      if (isGroupedRadarWifiData(device.data)){
-                return (
-                  <div className="mb-4 deviceData" key={index} style={{ border: "2px solid black" }}>
-                    <div className="border-b-4 mb-4">
-                      <span className="mr-16">게이트웨이 MAC주소: {device.router_id}</span>
-                      <span className="mr-16">장치: 레이더_와이파이({device.data.uid})</span>
-                      <span>
-                        일시: {timestamp && <span className="text-sm text-blue-500">(device update at {timestamp})</span>}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="mr-8">Det: {device.data.presence}</span>
-                      <span className="mr-8">cnt: {device.data.detect_count}</span>
-                      <span className="mr-8">HR: {device.data.heart}</span>
-                      <span className="mr-8">BR: {device.data.breath}</span>
-                      <span className="mr-8">Dis: {device.data.range}</span>
-                      <span className="mr-8">fall: {device.data.fall}</span>
-                      <span className="mr-8">rssi: {device.data.radar_rssi}</span>
-                      <span className="mr-8">IP: {device.data.device_ip}</span>
-                      <span className="mr-8">MAC: {device.data.mac_address}</span>
-                    </div>
-                  </div>
-                );
-            }
-          return null;
-          })}
-    </main>
-  );
 }

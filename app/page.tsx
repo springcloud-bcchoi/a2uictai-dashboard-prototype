@@ -1,7 +1,7 @@
 'use client';
 
 import { useContext, useState, useEffect, useRef } from "react";
-import { AgrData, ElicitData, RadarUsbData, RadarWifiData, Wss, AlertData, TubeTrailerData } from '@/components/Wss';
+import { AgrData, ElicitData, RadarUsbData, RadarWifiData, Wss, AlertData, TubeTrailerData, HydrogenProductionStationData } from '@/components/Wss';
 import dynamic from 'next/dynamic';
 import AlertTable from "@/components/AlertTable";
 import Site from "@/components/map/Site";
@@ -13,7 +13,7 @@ import { filterAgrDataBySourceIp, groupDataByRouterId } from "./service/groupDat
 
 const useHighlightUpdate = (
   latestAgrData: AgrData | null,
-  latestMqttData: ElicitData | RadarUsbData | RadarWifiData | TubeTrailerData | null
+  latestMqttData: ElicitData | RadarUsbData | RadarWifiData | TubeTrailerData | HydrogenProductionStationData | null
 ): { [key: string]: { agr: boolean; mqtt: boolean; timestamp: string; type: string } } => {
   const [highlightedRouters, setHighlightedRouters] = useState<{
     [key: string]: { agr: boolean; mqtt: boolean; timestamp: string; type: string }
