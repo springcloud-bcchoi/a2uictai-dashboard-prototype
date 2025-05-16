@@ -35,16 +35,18 @@ export interface GroupedElicitData extends ModifyElicitData {
 export interface UnifiedRadarData {
   router_id: string;
   device_id: string;
+  radar_type: 'FCV' | 'FV';
   data: {
     Det: string;
     HR: string;
     BR: string;
     spo2: string;
+    range: string;
     fall: string;
     rssi: string;
     IP: string;
     MAC: string;
-    radar_type: 'FCV' | 'FV';
+    // radar_type: 'FCV' | 'FV';
   }
 }
 
@@ -207,12 +209,14 @@ export const radarWifiData = (mqttDataDb: any[]): UnifiedRadarData[] => {
             HR: data.data.heart,
             BR: data.data.breath,
             spo2: '', // 없음
+            range: data.data.range,
             fall: data.data.fall,
             rssi: data.data.radar_rssi,
             IP: data.data.device_ip,
             MAC: data.data.mac_address,
-            radar_type: 'FCV'
+            // radar_type: 'FCV'
           },
+          radar_type: 'FCV',
           router_id,
           device_id
         });
@@ -224,12 +228,14 @@ export const radarWifiData = (mqttDataDb: any[]): UnifiedRadarData[] => {
             HR: data.data.heart,
             BR: data.data.breath,
             spo2: data.data.sp02,
+            range: data.data.range,
             fall: data.data.drop,
             rssi: data.data.radar_rssi,
             IP: '', // 없음
             MAC: '', // 없음
-            radar_type: 'FV'
+            // radar_type: 'FV'
           },
+          radar_type: 'FV',
           router_id,
           device_id
         });

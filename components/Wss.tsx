@@ -121,6 +121,7 @@ export interface RadarWifiDataFV {
     heart_detection:string // # 심박 측정 여부
     breath:string, // # Breathing Rate
     sp02:string, // # Breathing Rate
+    range:string; // # 감지 거리
     drop:string, // # 낙상 여부
     radar_rssi:string, //# 장치 rssi 감도수
     alive_count:string, // # 장치 연결 상태

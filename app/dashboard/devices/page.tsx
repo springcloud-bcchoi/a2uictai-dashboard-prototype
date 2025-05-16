@@ -17,7 +17,7 @@ import dynamic from 'next/dynamic';
 // import { Router } from 'next/router';
 import { Suspense, useContext, useEffect, useRef, useState } from 'react';
 import { AgrData, ElicitData, RadarUsbData, RadarWifiData, Wss, AlertData, TubeTrailerData, HydrogenProductionStationData } from '@/components/Wss';
-import { buttonData, deviceData, doorData, GroupedDeviceData, GroupedElicitData, GroupedHydrogenProductionStationData, GroupedTubeTrailerData, hydrogenProductionStationData, ModifyElicitData, radarWifiData, tubeTrailerData } from '@/app/service/Devices';
+import { buttonData, deviceData, doorData, GroupedDeviceData, GroupedElicitData, GroupedHydrogenProductionStationData, GroupedTubeTrailerData, hydrogenProductionStationData, ModifyElicitData, radarWifiData, tubeTrailerData, UnifiedRadarData } from '@/app/service/Devices';
 import OptionModal from '@/app/ui/devices/OptionModal';
 import { SearchProvider, useSearch } from '@/components/searchbar/SearchContext';
 import { useDisclosure } from '@chakra-ui/react';
@@ -205,7 +205,7 @@ export default function Page(){
   // const displayDeviceDb = filteredDevicesBySearch.length > 0 ? filteredDevicesBySearch : deviceDb;
   
   // 헬퍼 함수들
-  const isRadar = (data:any) => 'radar_type' in data;
+  const isRadar = (data:any) => 'HR' in data;
   const isHydrogenStation = (data:any) => 'fdet' in data;
   const isTubeTrailer = (data:any) => 'cuid' in data;
 
@@ -322,6 +322,9 @@ export default function Page(){
           <div key={index} className="p-4 border rounded-xl shadow bg-white">
             <div className="mb-2 text-sm text-gray-700 flex flex-wrap gap-4">
               <span><strong>TopicId:</strong> {device.router_id}/{device.device_id}</span>
+              {type === '레이더와이파이' && (
+                <div><strong>Type:</strong> {(device as UnifiedRadarData).radar_type}</div>
+              )}
               {/* <span><strong>MAC:</strong> {device.router_id}</span>
               <span><strong>ID:</strong> {device.device_id || data.guid || data.tuid}</span> */}
               <span>
